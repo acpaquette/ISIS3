@@ -141,6 +141,7 @@ namespace Isis {
     // (this method is in the ShapeModel base class)
 
     bool ellipseIntersected = intersectEllipsoid(observerPos, lookDirection);
+
     if (!ellipseIntersected) {
       return false;
     }
@@ -205,6 +206,7 @@ namespace Isis {
 
       double r = radiusKm.kilometers();
       bool status;
+
       surfpt_c((SpiceDouble *) &observerPos[0], &lookDirection[0], r, r, r, newIntersectPt,
                (SpiceBoolean*) &status);
 

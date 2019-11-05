@@ -39,7 +39,7 @@ using namespace std;
 
 namespace Isis {
 
-  /** 
+  /**
    * Constructor
    *
    * @param parent Pointer to camera to be used for mapping with ground
@@ -50,7 +50,7 @@ namespace Isis {
   }
 
 
-  /** 
+  /**
    * Compute ground position from focal plane coordinate
    *
    * This method will compute the ground position given an
@@ -81,7 +81,7 @@ namespace Isis {
   }
 
 
-  /** 
+  /**
    * Compute undistorted focal plane coordinate from ground position
    *
    * @param lat planetocentric latitude in degrees
@@ -90,8 +90,9 @@ namespace Isis {
    * @return @b bool If conversion was successful
    */
   bool CameraGroundMap::SetGround(const Latitude &lat, const Longitude &lon) {
+
     if (p_camera->target()->shape()->name() == "Plane") {
-      double radius = lat.degrees(); 
+      double radius = lat.degrees();
       // double azimuth = lon.degrees();
       Latitude lat(0., Angle::Degrees);
       if (radius < 0.0) radius = 0.0; // TODO: massive, temporary kluge to get around testing
@@ -132,10 +133,10 @@ namespace Isis {
   }
 
 
-  /** 
+  /**
    * Compute undistorted focal plane coordinate from ground position that includes a local radius
    *
-   * @param surfacePoint Surface point (ground position) 
+   * @param surfacePoint Surface point (ground position)
    *
    * @return @b bool If conversion was successful
    */
@@ -149,8 +150,8 @@ namespace Isis {
   }
 
 
-  /** 
-   * Compute undistorted focal plane coordinate from ground position using current Spice 
+  /**
+   * Compute undistorted focal plane coordinate from ground position using current Spice
    * from SetImage call
    *
    * This method will compute the undistorted focal plane coordinate for
@@ -158,14 +159,14 @@ namespace Isis {
    * without resetting the current point values for lat/lon/radius/m_pB/x/y.  The
    * class value for m_lookJ is set by this method.
    *
-   * @param point Surface point (ground position) 
+   * @param point Surface point (ground position)
    * @param cudx [out] Pointer to computed undistorted x focal plane coordinate
    * @param cudy [out] Pointer to computed undistorted y focal plane coordinate
    * @param test Optional parameter to indicate whether to do the back-of-planet test.
    *
    * @return @b bool If conversion was successful
    */
-  bool CameraGroundMap::GetXY(const SurfacePoint &point, double *cudx, 
+  bool CameraGroundMap::GetXY(const SurfacePoint &point, double *cudx,
                               double *cudy, bool test) {
 
     vector<double> pB(3);
@@ -194,7 +195,7 @@ namespace Isis {
 
     // Save pB for target body partial derivative calculations NEW *** DAC 8-14-2015
     m_pB = pB;
-    
+
     // During iterations in the bundle adjustment do not do the back-of-planet test.
     // Failures are expected to happen during the bundle adjustment due to bad camera
     // pointing or position, poor a priori points, or inaccurate target body information.  For
@@ -203,12 +204,12 @@ namespace Isis {
     // be corrected.  If not, the point residuals will likely be large on a point that fails the
     // test.  The back-of-planet test is still a valid check for a control net diagnostic
     // program, but not for the bundle adjustment.
-    // 
-    // TODO It might be useful to have a separate diagnostic program test all points in a 
-    //            control net to see if any of the control points fail the back-of-planet test on 
+    //
+    // TODO It might be useful to have a separate diagnostic program test all points in a
+    //            control net to see if any of the control points fail the back-of-planet test on
     //            any of the images.
 
-    // Check for point on back of planet by checking to see if surface point is viewable 
+    // Check for point on back of planet by checking to see if surface point is viewable
     //   (test emission angle)
     if (test) {
       vector<double> lookB = bodyRot->ReferenceVector(lookJ);
@@ -248,7 +249,7 @@ namespace Isis {
   }
 
 
-  /** 
+  /**
    * Compute undistorted focal plane coordinate from ground position using current Spice
    * from SetImage call
    *
@@ -257,7 +258,7 @@ namespace Isis {
    * without resetting the current point values for lat/lon/radius/m_pB/x/y.  The
    * class value for m_lookJ is set by this method.
    *
-   * @param lat Latitude in degrees 
+   * @param lat Latitude in degrees
    * @param lon Longitude in degrees
    * @param radius Radius in meters
    * @param cudx [out] Pointer to computed undistored x focal plane coordinate
@@ -276,13 +277,13 @@ namespace Isis {
   }
 
 
-  /** 
+  /**
    * Compute derivative w/r to position of focal plane coordinate from ground position
    * using current Spice from SetImage call
    *
    * This method will compute the derivative of the undistorted focal plane coordinate for
    * a ground position with respect to a spacecraft position coordinate, using the current
-   * Spice settings (time and kernels) without resetting the current point values for 
+   * Spice settings (time and kernels) without resetting the current point values for
    * lat/lon/radius/x/y.
    *
    * @param varType enumerated partial type (definitions in SpicePosition)
@@ -316,8 +317,8 @@ namespace Isis {
   }
 
 
-  /** 
-   * Compute derivative of focal plane coordinate w/r to instrument using current state from 
+  /**
+   * Compute derivative of focal plane coordinate w/r to instrument using current state from
    * SetImage call
    *
    * This method will compute the derivative of the undistorted focal plane coordinate for
@@ -370,10 +371,10 @@ namespace Isis {
   bool CameraGroundMap::GetdXYdTOrientation(const SpiceRotation::PartialType varType, int coefIndex,
                                             double *dx, double *dy) {
 
-    //TODO add a check to make sure m_pB and m_lookJ have been set. 
-    // 0.  calculate or save from previous GetXY call lookB.  We need toJ2000Partial that is 
-    //     like a derivative form of J2000Vector  
-    // 1.  we will call d_lookJ = bodyrot->toJ2000Partial (Make sure the partials are correct for 
+    //TODO add a check to make sure m_pB and m_lookJ have been set.
+    // 0.  calculate or save from previous GetXY call lookB.  We need toJ2000Partial that is
+    //     like a derivative form of J2000Vector
+    // 1.  we will call d_lookJ = bodyrot->toJ2000Partial (Make sure the partials are correct for
     //     the target body orientation matrix.
     // 2.  we will then call d_lookC = instRot->ReferenceVector(d_lookJ)
     // 3.  the rest should be the same.
@@ -398,7 +399,7 @@ namespace Isis {
   }
 
 
-  /** 
+  /**
    * Compute derivative of focal plane coordinate w/r to ground point using current state
    *
    * This method will compute the derivative of the undistorted focal plane coordinate for
@@ -409,7 +410,7 @@ namespace Isis {
    * @param *dx [out] pointer to partial derivative of undistorted focal plane x
    * @param *dy [out] pointer to partial derivative of undistorted focal plane y
    *
-   * @return conversion was successful 
+   * @return conversion was successful
    */
   bool CameraGroundMap::GetdXYdPoint(vector<double> d_pB, double *dx, double *dy) {
 
@@ -433,12 +434,12 @@ namespace Isis {
   }
 
 
-  /** 
+  /**
    * Compute derivative of focal plane coordinate w/r to one of the ellipsoidal radii (a, b, or c)
    *
    * This method will compute the derivative of the undistorted focal plane coordinate for
-   * a ground position with respect to the a (major axis), b (minor axis), or c (polar axis) radius, 
-   * using the current Spice settings (time and kernels) without resetting the current point 
+   * a ground position with respect to the a (major axis), b (minor axis), or c (polar axis) radius,
+   * using the current Spice settings (time and kernels) without resetting the current point
    * values for lat/lon/radius/x/y.
    *
    * @param spoint Surface point whose derivative is to be evalutated
@@ -446,7 +447,7 @@ namespace Isis {
    *
    * @throws IException::Programmer "Invalid partial type for this method"
    *
-   * @return @b vector<double> partialDerivative of body-fixed point with respect to selected 
+   * @return @b vector<double> partialDerivative of body-fixed point with respect to selected
    *                           ellipsoid axis
    */
   vector<double> CameraGroundMap::EllipsoidPartial(SurfacePoint spoint, PartialType raxis) {
@@ -460,17 +461,17 @@ namespace Isis {
     vector<double> v(3);
 
     switch (raxis) {
-      case WRT_MajorAxis:   
+      case WRT_MajorAxis:
          v[0] = cosLat * cosLon;
          v[1] = 0.0;
          v[2] =  0.0;
          break;
-      case WRT_MinorAxis:  
+      case WRT_MinorAxis:
          v[0] = 0.0;
          v[1] =  cosLat * sinLon;
          v[2] =  0.0;
          break;
-      case WRT_PolarAxis: 
+      case WRT_PolarAxis:
          v[0] = 0.0;
          v[1] = 0.0;
          v[2] = sinLat;
@@ -484,11 +485,11 @@ namespace Isis {
   }
 
 
-  /** 
+  /**
    * Compute derivative of focal plane coordinate w/r to mean of the ellipsoidal radii (a, b, c)
    *
    * This method will compute the derivative of the undistorted focal plane coordinate for
-   * a ground position with respect to the mean of the a (major axis), b (minor axis), and  c 
+   * a ground position with respect to the mean of the a (major axis), b (minor axis), and  c
    * (polar axis) radius, using the current Spice settings (time and kernels) without resetting the
    * current point values for lat/lon/radius/x/y.
    *
@@ -512,10 +513,10 @@ namespace Isis {
   }
 
 
-  /** 
+  /**
    * Compute derivative with respect to indicated variable of conversion function from lat/lon/rad
    * to rectangular coord
-   * 
+   *
    * @param spoint Surface point (ground position)
    * @param wrt take derivative with respect to this value
    *
