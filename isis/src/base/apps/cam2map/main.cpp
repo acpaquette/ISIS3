@@ -545,11 +545,12 @@ bool cam2mapReverse::Xform(double &inSample, double &inLine,
   inSample = p_incam->Sample();
   inLine = p_incam->Line();
 
-  // p_incam->SetImage(inSample, inLine);
+  p_incam->SetImage(inSample, inLine);
 
-  // if ((lat - p_incam->UniversalLatitude()) > 0.00001) {
-    // return false;
-  // }
+  if (abs(lat - p_incam->UniversalLatitude()) > 0.00001 ||
+      abs(lon - p_incam->UniversalLongitude()) > 0.00001) {
+    return false;
+  }
 
   return true;
 }
