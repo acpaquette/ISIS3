@@ -35,6 +35,7 @@
 #include "geos/util/GEOSException.h"
 
 #include "ImageOverlap.h"
+#include "ImageOverlapThread.h"
 #include "IException.h"
 #include "PvlGroup.h"
 
@@ -97,7 +98,7 @@ namespace Isis {
    *                          undefined behavior caused by unlocking an unlocked mutex.
    *   @history 2017-05-23 Ian Humphrey - Added a tryLock() to FindAllOverlaps to prevent a
    *                           segfault from occuring on OSX with certain data. Fixes #4810.
-   * 
+   *
    */
   class ImageOverlapSet : private QThread {
     public:

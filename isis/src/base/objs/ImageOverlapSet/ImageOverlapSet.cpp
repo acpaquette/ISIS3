@@ -142,7 +142,18 @@ namespace Isis {
     DespikeLonLatOverlaps();
 
     if (p_threadedCalculate) {
-      // Call FindAllOverlaps in other thread
+      // std::cout << "ORIGINAL: " << p_lonLatOverlaps.size() << '\n';
+      // // Call FindAllOverlaps in other thread
+      // QList<ImageOverlap *>::iterator i;
+      // ImageOverlapThread *overlapThread;
+      // p_lonLatOverlapsMutex.lock();
+      // for (i = p_lonLatOverlaps.begin(); i != p_lonLatOverlaps.end(); i++) {
+      //   overlapThread = new ImageOverlapThread(*i, &p_lonLatOverlaps, &p_lonLatOverlapsMutex);
+      //   connect(overlapThread, SIGNAL(finished()), this, SLOT(quit()));
+      //   overlapThread->start();
+      // }
+      // p_lonLatOverlapsMutex.unlock();
+      // std::cout << "APPLE" << '\n';
       start();
     }
     else {
@@ -549,6 +560,7 @@ namespace Isis {
     geos::geom::MultiPolygon *emptyPolygon = Isis::globalFactory->createMultiPolygon();
 
     // Compare each polygon with all of the others
+    int count = 0;
     for (int outside = 0; outside < p_lonLatOverlaps.size() - 1; ++outside) {
       p_calculatedSoFar = outside - 1;
 
@@ -566,7 +578,7 @@ namespace Isis {
         try {
           if (p_lonLatOverlaps.at(outside)->HasAnySameSerialNumber(*p_lonLatOverlaps.at(inside)))
             continue;
-
+          count += 1;
           // We know these are valid because they were filtered early on
           const geos::geom::MultiPolygon *poly1 = p_lonLatOverlaps.at(outside)->Polygon();
           const geos::geom::MultiPolygon *poly2 = p_lonLatOverlaps.at(inside)->Polygon();
@@ -796,6 +808,7 @@ namespace Isis {
     }
 
     p_calculatedSoFar = p_lonLatOverlaps.size();
+    std::cout << count << '\n';
     delete emptyPolygon;
 
     // Do not write empty overlap files

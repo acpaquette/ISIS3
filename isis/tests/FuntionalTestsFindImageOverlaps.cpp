@@ -44,6 +44,7 @@ TEST_F(ThreeImageNetwork, FunctionalTestFindImageOverlapsNoOverlap) {
   geos::io::WKTWriter *wkt = new geos::io::WKTWriter();
 
   std::string polyStr = wkt->write(multiPoly);
+  polys->pop_back();
   int polyStrSize = polyStr.size();
   std::istringstream polyStream(polyStr);
 
@@ -134,6 +135,7 @@ TEST_F(ThreeImageNetwork, FunctionalTestFindImageOverlapFullOverlap) {
   geos::io::WKTWriter *wkt = new geos::io::WKTWriter();
 
   std::string polyStr = wkt->write(multiPoly);
+  polys->pop_back();
   int polyStrSize = polyStr.size();
   std::istringstream polyStream(polyStr);
 
