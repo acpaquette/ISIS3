@@ -20,8 +20,9 @@ using namespace testing;
 
 static QString APP_XML = FileName("$ISISROOT/bin/xml/thm2isis.xml").expanded();
 
-TEST_F(TempTestingFiles, FunctionalTestsThm2isisIr) {
-  QString cubeFileName = tempDir.path() + "/thm2isisTEMP.cub";
+TEST(Thm2Isis, FunctionalTestsThm2isisIr) {
+  QTemporaryDir prefix;
+  QString cubeFileName = prefix.path() + "/thm2isisTEMP.cub";
   QVector<QString> args = {"from=data/themis/I00831002RDR_cropped.QUB",
                            "to=" + cubeFileName};
 
@@ -151,9 +152,10 @@ TEST_F(TempTestingFiles, FunctionalTestsThm2isisIr) {
   EXPECT_DOUBLE_EQ(hist->StandardDeviation(), 4.7876398382339314e-06);
 }
 
-TEST_F(TempTestingFiles, FunctionalTestsThm2isisVis) {
+TEST(Thm2Isis, FunctionalTestsThm2isisVis) {
+  QTemporaryDir prefix;
   QString outFileName = "/thm2isisTEMP";
-  QString cubeFileName = tempDir.path() + outFileName + ".cub";
+  QString cubeFileName = prefix.path() + outFileName + ".cub";
   QVector<QString> args = {"from=data/themis/V00821003RDR_cropped.QUB",
                            "to=" + cubeFileName};
 
@@ -164,8 +166,8 @@ TEST_F(TempTestingFiles, FunctionalTestsThm2isisVis) {
   catch (IException &e) {
     FAIL() << "Unable to ingest themis image: " << e.toString().toStdString().c_str() << std::endl;
   }
-  std::unique_ptr<Cube> oddCube (new Cube(tempDir.path() + outFileName + ".odd.cub"));
-  std::unique_ptr<Cube> evenCube (new Cube(tempDir.path() + outFileName + ".even.cub"));
+  std::unique_ptr<Cube> oddCube (new Cube(prefix.path() + outFileName + ".odd.cub"));
+  std::unique_ptr<Cube> evenCube (new Cube(prefix.path() + outFileName + ".even.cub"));
   Pvl *oddLabel = oddCube->label();
   Pvl *evenLabel = evenCube->label();
 
