@@ -44,6 +44,7 @@ for (lbl in labels) {
 
                     sh """
                       git checkout dev
+                      git log -n 3
                       cd recipe
                       ${condaPath}/bin/conda install conda-build
                       ${condaPath}/bin/conda build . --no-anaconda-upload
