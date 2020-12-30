@@ -2,7 +2,7 @@
 
 def labels = ['centos', 'fedora', 'ubuntu', 'mac'] // labels for Jenkins node types we will build on
 def nodes = [:]
-def ISIS_VERSION="4.3.0"
+def ISIS_VERSION="4.3.0_RC1"
 
 for (lbl in labels) {
     def label = lbl
@@ -43,7 +43,7 @@ for (lbl in labels) {
                     checkout scm
 
                     sh """
-                      git checkout 4.3
+                      git checkout dev
                       cd recipe
                       ${condaPath}/bin/conda install conda-build
                       ${condaPath}/bin/conda build . --no-anaconda-upload
