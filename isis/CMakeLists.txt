@@ -76,6 +76,8 @@ option(buildTests      "Set up unit, application, and module tests."    ON  )
 option(buildDocs       "Build the docs."                                ON  )
 option(JP2KFLAG        "Whether or not to build using JPEG2000 support" OFF )
 option(pybindings      "Turn on to build Python bindings"               ON  )
+option(buildSwig       "Turn on to build swig wrappers"                 OFF )
+option(BUILD_CORE_TESTS "Turn on to build core tests"                   ON )
 
 # if cmake install prefix is not set, and conda env is activated, use the
 # conda env as the install directory.
@@ -142,6 +144,7 @@ message("\tBUILD TESTS: ${buildTests}")
 message("\tBUILD DOCS: ${buildDocs}")
 message("\tBUILD CORE: ${buildCore}")
 message("\tBUILD MISSIONS: ${buildMissions}")
+message("\tBUILD CORE TESTS: ${BUILD_CORE_TESTS}")
 message("\tJP2K SUPPORT: ${JP2KFLAG}")
 message("\tPYTHON BINDINGS: ${pybindings}")
 message("\tISISDATA: ${isisData}")
@@ -203,6 +206,7 @@ endif()
 # Flag to fix numeric literals problem with boost on linux
 # Add gold linker (and therefore, phtread) to speed up linux (spec. Ubuntu18.04) builds
 if(NOT APPLE)
+  message("$ENV{CONDA_PREFIX}")
   set(thirdPartyCppFlags ${thirdPartyCppFlags} -fuse-ld=gold
 	                                             -pthread
 					                                     -fext-numeric-literals
