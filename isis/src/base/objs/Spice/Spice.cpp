@@ -201,7 +201,7 @@ namespace Isis {
           throw IException(IException::Programmer, msg, _FILEINFO_);
         }
 
-        if (isd == NULL){
+        if (isd == NULL) {
           // try using ALE
           std::ostringstream kernel_pvl;
           kernel_pvl << kernels;
