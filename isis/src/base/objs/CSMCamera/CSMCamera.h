@@ -81,9 +81,9 @@ namespace Isis {
       virtual bool SetGround(const SurfacePoint &surfacePt);
       virtual bool SetUniversalGround(const double latitude, const double longitude);
       virtual bool SetUniversalGround(const double latitude, const double longitude, double radius);
-      virtual bool SetRightAscensionDeclination(const double ra, const double dec);
+      // virtual bool SetRightAscensionDeclination(const double ra, const double dec);
       virtual void setTime(const iTime &time);
-      virtual bool SetLookDirection(const double v[3]);
+      virtual bool SetLookDirection(const std::vector<double> lookB);
       virtual double CelestialNorthClockAngle();
 
       virtual double LineResolution();
@@ -116,8 +116,8 @@ namespace Isis {
       virtual double SlantDistance() const;
       virtual double targetCenterDistance() const;
 
-      virtual double RightAscension();
-      virtual double Declination();
+      // virtual double RightAscension();
+      // virtual double Declination();
 
       std::vector<int> getParameterIndices(csm::param::Set paramSet) const;
       std::vector<int> getParameterIndices(csm::param::Type paramType) const;
@@ -147,7 +147,8 @@ namespace Isis {
 
       csm::RasterGM *m_model; //! CSM sensor model
       iTime m_refTime; //! The reference time that all model image times are relative to
-      SpiceRotation *m_bodyRot;
+      SpiceRotation *m_bodyRotation; //!< Body spice rotation
+      SpiceRotation *m_instrumentRotation; //!< Instrument spice rotation
       Longitude *m_solarLongitude;
 
       void isisToCsmPixel(double line, double sample, csm::ImageCoord &csmPixel) const;

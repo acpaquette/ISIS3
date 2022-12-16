@@ -34,11 +34,11 @@ namespace Isis {
    */
   bool CSMSkyMap::SetSky(const double ra, const double dec) {
     ((CSMCamera*)p_camera)->SetRightAscensionDeclination(ra, dec);
-    // double lookC[3];
-    // ((CSMCamera*)p_camera)->LookDirection(lookC);
-    // double scale = p_camera->FocalLength() / lookC[2];
-    // p_focalPlaneX = lookC[0] * scale;
-    // p_focalPlaneY = lookC[1] * scale;
+    double lookC[3];
+    ((CSMCamera*)p_camera)->LookDirection(lookC);
+    double scale = p_camera->FocalLength() / lookC[2];
+    p_focalPlaneX = lookC[0] * scale;
+    p_focalPlaneY = lookC[1] * scale;
     return true;
   }
 
