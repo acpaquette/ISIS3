@@ -23,14 +23,19 @@ find files of those names at the top level of this repository. **/
 #include "CameraFactory.h"
 #include "CSMCamera.h"
 #include "Cube.h"
+#include "KernelDb.h"
 #include "IException.h"
 #include "ImagePolygon.h"
 #include "Process.h"
 #include "Pvl.h"
 #include "PvlGroup.h"
 #include "PvlKeyword.h"
+#include "PvlToPvlTranslationManager.h"
+#include "ShapeModelFactory.h"
+#include "SpiceRotation.h"
 
 using namespace std;
+using json = nlohmann::json;
 
 namespace Isis {
 
@@ -218,6 +223,12 @@ namespace Isis {
     // If the user doesn't specify a target name, then we will still need
     // something on the label for the Target & ShapeModel so add Unknown
     else if (!instrumentGroup.hasKeyword("TargetName")) {
+      PvlGroup warning("Warning");
+      PvlKeyword message("Message",
+                         "No target provided, defaulting to biaxial CSM provided Radii.");
+      warning.addKeyword(message);
+      log->addLogGroup(warning);
+
       PvlKeyword targetKey("TargetName", "Unknown");
       targetKey.addComment("Radii will come from the CSM model");
       instrumentGroup.addKeyword(targetKey, Pvl::Replace);
@@ -280,14 +291,6 @@ namespace Isis {
       cube->putGroup(PvlGroup("Kernels"));
     }
     PvlGroup &kernelsGroup = cube->group("Kernels");
-
-    if (ui.WasEntered("SHAPEMODEL")) {
-      // TODO validate the shapemodel
-      kernelsGroup.addKeyword(PvlKeyword("ShapeModel", ui.GetFileName("SHAPEMODEL")), Pvl::Replace);
-    }
-    else {
-      kernelsGroup.addKeyword(PvlKeyword("ShapeModel", "Null"), Pvl::Replace);
-    }
 
     // Get rid of keywords from spiceinit
     if (kernelsGroup.hasKeyword("LeapSecond")) {
@@ -473,6 +476,71 @@ namespace Isis {
 
       QString message = "Failed to create a CSMCamera.";
       throw IException(e, IException::Unknown, message, _FILEINFO_);
+    }
+
+    kernelsGroup.addKeyword(PvlKeyword("ShapeModel", "Null"), Pvl::Replace);
+
+    if (ui.WasEntered("SHAPEMODEL")) {
+      kernelsGroup.addKeyword(PvlKeyword("ShapeModel", ui.GetFileName("SHAPEMODEL")), Pvl::Replace);
+      try {
+        // Just try to get the camera which will try to construct the shapemodel
+        cube->camera();
+      }
+      catch (IException &e) {
+        PvlGroup warning("Warning");
+        PvlKeyword message("Message",
+                           "Unable to construct a shapemodel from [" + ui.GetFileName("SHAPEMODEL") + "]. "
+                           "Defaulting to ellipsoid model");
+        PvlKeyword error("Error", e.what());
+        warning.addKeyword(message);
+        warning.addKeyword(error);
+        log->addLogGroup(warning);
+        kernelsGroup.addKeyword(PvlKeyword("ShapeModel", "Null"), Pvl::Replace);
+      }
+    }
+    else {
+      Pvl lab = *(cube->label());
+      QString transFile = "$ISISROOT/appdata/translations/MissionName2DataDir.trn";
+
+      // Get the mission translation manager ready
+      PvlToPvlTranslationManager missionXlater(lab, transFile);
+
+      // Get the mission name so we can search the correct DB's for kernels
+      QString mission = missionXlater.Translate("MissionName");
+
+      unsigned int allowed = 0;
+      KernelDb baseKernels(allowed);
+      baseKernels.loadSystemDb(mission, lab);
+
+      Kernel dem = baseKernels.dem(lab);
+      for (int i = 0; i < dem.size(); i++) {
+        try {
+          kernelsGroup.addKeyword(PvlKeyword("ShapeModel", dem[i]), Pvl::Replace);
+          // Just try to get the camera which will try to construct the shapemodel
+          cube->camera();
+          break;
+        }
+        catch (IException &e) {
+          PvlGroup warning("Warning");
+          PvlKeyword message("Message",
+                             "Unable to construct a shapemodel from " + dem[i]);
+          PvlKeyword error("Error", e.what());
+          warning.addKeyword(message);
+          warning.addKeyword(error);
+          log->addLogGroup(warning);
+          // Reset shapemodel null each time
+          kernelsGroup.addKeyword(PvlKeyword("ShapeModel", "Null"), Pvl::Replace);
+        }
+      }
+
+      if (QString(kernelsGroup["ShapeModel"]) == "Null") {
+        PvlGroup warning("Warning");
+        PvlKeyword message("Message",
+                           "Unable to construct a shapemodel from the data area. "
+                           "Defaulting to ellipsoid model");
+        warning.addKeyword(message);
+        log->addLogGroup(warning);
+      }
     }
   }
 }
