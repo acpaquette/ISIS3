@@ -484,7 +484,7 @@ namespace Isis {
       kernelsGroup.addKeyword(PvlKeyword("ShapeModel", ui.GetFileName("SHAPEMODEL")), Pvl::Replace);
       try {
         // Just try to get the camera which will try to construct the shapemodel
-        cube->camera();
+        CameraFactory::Create(*cube);
       }
       catch (IException &e) {
         PvlGroup warning("Warning");
@@ -498,26 +498,21 @@ namespace Isis {
         kernelsGroup.addKeyword(PvlKeyword("ShapeModel", "Null"), Pvl::Replace);
       }
     }
-    else {
-      Pvl lab = *(cube->label());
-      QString transFile = "$ISISROOT/appdata/translations/MissionName2DataDir.trn";
-
-      // Get the mission translation manager ready
-      PvlToPvlTranslationManager missionXlater(lab, transFile);
-
-      // Get the mission name so we can search the correct DB's for kernels
-      QString mission = missionXlater.Translate("MissionName");
-
+    else if (QString(cube->group("Instrument")["TargetName"]) != "Unknown") {
       unsigned int allowed = 0;
       KernelDb baseKernels(allowed);
-      baseKernels.loadSystemDb(mission, lab);
+      // Get the base DataDirectory
+      PvlGroup &dataDir = Preference::Preferences().findGroup("DataDirectory");
+      QString baseDir = dataDir["Base"];
+      baseKernels.loadKernelDbFiles(dataDir, baseDir + "/dems", *cube->label());
+      baseKernels.readKernelDbFiles();
 
-      Kernel dem = baseKernels.dem(lab);
+      Kernel dem = baseKernels.dem(*cube->label());
       for (int i = 0; i < dem.size(); i++) {
         try {
           kernelsGroup.addKeyword(PvlKeyword("ShapeModel", dem[i]), Pvl::Replace);
           // Just try to get the camera which will try to construct the shapemodel
-          cube->camera();
+          CameraFactory::Create(*cube);
           break;
         }
         catch (IException &e) {
