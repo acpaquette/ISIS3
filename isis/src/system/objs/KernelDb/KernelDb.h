@@ -127,6 +127,11 @@ namespace Isis {
                                                    Pvl &lab);
 
       void loadSystemDb(const QString &mission, const Pvl &lab);
+      void loadKernelDbFiles(PvlGroup &dataDir,
+                             QString directory,
+                             const Pvl &lab);
+      void readKernelDbFiles();
+
       QList<FileName> kernelDbFiles();
 
       static bool matches(const Pvl &lab, PvlGroup &kernelDbGrp,
@@ -134,11 +139,6 @@ namespace Isis {
     private:
       friend class ::KernelDbFixture_TestKernelsSmithOffset_Test; 
       
-      void loadKernelDbFiles(PvlGroup &dataDir,
-                             QString directory,
-                             const Pvl &lab);
-      void readKernelDbFiles();
-
       QStringList files(PvlGroup &grp);
       QString m_filename; /**< The name of the kernel database file. This
                                may be set to "None" or "internal stream".*/

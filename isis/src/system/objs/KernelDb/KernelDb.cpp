@@ -388,13 +388,17 @@ namespace Isis {
     iTime end;
 
     if (cube.hasGroup("Instrument")) {
-      start = (QString) cube.findGroup("Instrument")["StartTime"];
-
-      if (cube.findGroup("Instrument").hasKeyword("StopTime")) {
-        end = ((QString) cube.findGroup("Instrument")["StopTime"]);
+      PvlGroup &instGroup = cube.findGroup("Instrument");
+      if (instGroup.hasKeyword("StartTime")) {
+        start = (QString)instGroup["StartTime"];
+      }
+      if (instGroup.hasKeyword("StopTime")) {
+        end = ((QString)instGroup["StopTime"]);
       }
       else {
-        end = ((QString) cube.findGroup("Instrument")["StartTime"]);
+        if (instGroup.hasKeyword("StartTime")) {
+          end = ((QString)instGroup["StartTime"]);
+        }
       }
     }
 
@@ -435,7 +439,6 @@ namespace Isis {
           if (startMatches && endMatches) {
             // Simple case - the selection simply matches
             filesFound.push(Kernel(Kernel::typeEnum(type), files(grp)));
-            QStringList kernelfiles = files(grp);
           }
           else if (startMatches) {
             // Well, the selection start matched but not the end.
