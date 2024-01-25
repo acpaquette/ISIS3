@@ -136,9 +136,10 @@ TEST_F(CSMPluginFixture, CSMInitDefault) {
   EXPECT_EQ(infoGroup["ModelParameterTypes"][1].toStdString(), "REAL");
 
   // Check the Kernels group
-  ASSERT_TRUE(testCube->hasGroup("Kernels"));
+  EXPECT_TRUE(testCube->hasGroup("Kernels"));
   PvlGroup &kernGroup = testCube->group("Kernels");
   EXPECT_TRUE(kernGroup.hasKeyword("ShapeModel"));
+  EXPECT_EQ(QString(kernGroup["ShapeModel"]), "$base/dems/molaMarsPlanetaryRadius0005.cub");
 }
 
 TEST_F(CSMPluginFixture, CSMInitRunTwice) {
@@ -501,4 +502,86 @@ TEST_F(CSMPluginFixture, CSMInitWithState) {
   testCube->read(stateBlobAfter);
   std::string stateAfter(stateBlobAfter.getBuffer(), stateBlobAfter.Size());
   EXPECT_EQ(stateBefore, stateAfter);
+}
+
+TEST_F(CSMPluginFixture, CSMInitSetTargetMoon) {
+  // Run csminit with defaults for everything besides FROM and ISD
+  QVector<QString> args = {
+      "from=" + filename,
+      "isd=" + isdPath,
+      "targetname=Moon"};
+
+  UserInterface options(APP_XML, args);
+  csminit(options);
+
+  testCube->open(filename);
+
+  // Get a model and a state string
+  Blob stateString("CSMState", "String");
+  testCube->read(stateString);
+
+  // Verify contents of the Blob's PVL label
+  PvlObject blobPvl = stateString.Label();
+
+  // Check that the plugin can create a model from the state string
+  std::string modelName = QString(blobPvl.findKeyword("ModelName")).toStdString();
+  std::string modelState(stateString.getBuffer(), stateString.Size());
+  EXPECT_TRUE(plugin->canModelBeConstructedFromState(modelName, modelState));
+
+  // Check blob label ModelName and Plugin Name
+  EXPECT_EQ(QString(blobPvl.findKeyword("PluginName")).toStdString(), plugin->getPluginName());
+  EXPECT_EQ(modelName, TestCsmModel::SENSOR_MODEL_NAME);
+
+  // Check the Instrument group
+  ASSERT_TRUE(testCube->hasGroup("Instrument"));
+  PvlGroup &instGroup = testCube->group("Instrument");
+  EXPECT_TRUE(instGroup.hasKeyword("TargetName"));
+  EXPECT_EQ(QString(instGroup["TargetName"]), "Moon");
+
+  // Check the Kernels group
+  ASSERT_TRUE(testCube->hasGroup("Kernels"));
+  PvlGroup &kernGroup = testCube->group("Kernels");
+  EXPECT_TRUE(kernGroup.hasKeyword("ShapeModel"));
+  EXPECT_EQ(QString(kernGroup["ShapeModel"]), "$base/dems/ldem_128ppd_Mar2011_clon180_radius_pad.cub");
+}
+
+TEST_F(CSMPluginFixture, CSMInitSetTargetUnknown) {
+  // Run csminit with defaults for everything besides FROM and ISD
+  QVector<QString> args = {
+      "from=" + filename,
+      "isd=" + isdPath,
+      "targetname=Unknown"};
+
+  UserInterface options(APP_XML, args);
+  csminit(options);
+
+  testCube->open(filename);
+
+  // Get a model and a state string
+  Blob stateString("CSMState", "String");
+  testCube->read(stateString);
+
+  // Verify contents of the Blob's PVL label
+  PvlObject blobPvl = stateString.Label();
+
+  // Check that the plugin can create a model from the state string
+  std::string modelName = QString(blobPvl.findKeyword("ModelName")).toStdString();
+  std::string modelState(stateString.getBuffer(), stateString.Size());
+  EXPECT_TRUE(plugin->canModelBeConstructedFromState(modelName, modelState));
+
+  // Check blob label ModelName and Plugin Name
+  EXPECT_EQ(QString(blobPvl.findKeyword("PluginName")).toStdString(), plugin->getPluginName());
+  EXPECT_EQ(modelName, TestCsmModel::SENSOR_MODEL_NAME);
+
+  // Check the Instrument group
+  ASSERT_TRUE(testCube->hasGroup("Instrument"));
+  PvlGroup &instGroup = testCube->group("Instrument");
+  EXPECT_TRUE(instGroup.hasKeyword("TargetName"));
+  EXPECT_EQ(QString(instGroup["TargetName"]), "Unknown");
+
+  // Check the Kernels group
+  ASSERT_TRUE(testCube->hasGroup("Kernels"));
+  PvlGroup &kernGroup = testCube->group("Kernels");
+  EXPECT_TRUE(kernGroup.hasKeyword("ShapeModel"));
+  EXPECT_EQ(QString(kernGroup["ShapeModel"]), "Null");
 }
