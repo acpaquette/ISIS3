@@ -1078,7 +1078,7 @@ namespace Isis {
     }
 
     // Write an attached blob
-    if (LabelAttachment() == LabelAttachment::AttachedLabel) {
+    if (labelsAttached() == LabelAttachment::AttachedLabel) {
       QMutexLocker locker(m_mutex);
       QMutexLocker locker2(m_ioHandler->dataFileMutex());
 
@@ -1642,7 +1642,7 @@ namespace Isis {
                        _FILEINFO_);
     }
 
-    if (LabelAttachment() == ExternalLabel) {
+    if (labelsAttached() == ExternalLabel) {
       throw IException(IException::Unknown,
                        "Cube::getExternalCubeFileName can only be called on an external cube label "
                          "file",
@@ -2726,7 +2726,7 @@ namespace Isis {
     m_label->setFormatTemplate(m_formatTemplateFile->original());
 
     // Write them with attached data
-    if (LabelAttachment() != LabelAttachment::DetachedLabel) {
+    if (labelsAttached() != LabelAttachment::DetachedLabel) {
       QMutexLocker locker(m_mutex);
       QMutexLocker locker2(m_ioHandler->dataFileMutex());
 
