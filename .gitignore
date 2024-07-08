@@ -31,7 +31,6 @@ object_script.*.Debug
 *.moc
 ui_*.h
 *html
-*.profraw
 
 # ignore all files created by squish coco
 *csmes

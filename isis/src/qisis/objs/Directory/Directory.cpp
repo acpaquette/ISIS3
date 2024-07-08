@@ -1760,7 +1760,7 @@ namespace Isis {
             actionsInsideMenu.append(action);
           }
 
-          std::sort(actionsInsideMenu.begin(), actionsInsideMenu.end(), &actionTextLessThan);
+          qSort(actionsInsideMenu.begin(), actionsInsideMenu.end(), &actionTextLessThan);
 
           QAction *allAct = new QAction(tr("All"), NULL);
 

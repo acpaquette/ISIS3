@@ -269,11 +269,11 @@ void IsisMain() {
   elfDictionary += PvlKeyword("PropagateKeyword","Middle-Earth");
 
 
-  qDebug() << "************************************************"  << Qt::endl;
-  qDebug() << "*                Constructors                  *"  << Qt::endl;
-  qDebug() << "************************************************"  << Qt::endl;
-  qDebug() << Qt::endl;
-  qDebug() << "Testing default constructor Strategy()  "  << Qt::endl;
+  qDebug() << "************************************************"  << endl;
+  qDebug() << "*                Constructors                  *"  << endl;
+  qDebug() << "************************************************"  << endl;
+  qDebug() << endl;
+  qDebug() << "Testing default constructor Strategy()  "  << endl;
   Strategy strat1;
   qDebug() << "Name:         " << strat1.name();
   qDebug() << "Type:         " << strat1.type();
@@ -282,7 +282,7 @@ void IsisMain() {
   qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
 
   qDebug() << "Testing Strategy(const PvlObject &def,const ResourceList &globals) constructor:";
-  qDebug() << Qt::endl;
+  qDebug() << endl;
 
   //This should throw an error because we haven't added keywords to emptyDictionary
   try {
@@ -293,26 +293,26 @@ void IsisMain() {
      }
 
   Strategy strat3(elfDictionary,lst);
-  qDebug() << strat3.name() << Qt::endl;
+  qDebug() << strat3.name() << endl;
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
 
-  qDebug() << "Testing Strategy(const QString &name,const QString &type) constructor:" << Qt::endl;
+  qDebug() << "Testing Strategy(const QString &name,const QString &type) constructor:" << endl;
 
   DerivedStrategy strat4("strat4name","strat4type");
-  qDebug() << strat4.name() << Qt::endl;
-  qDebug() << strat4.type() << Qt::endl;
+  qDebug() << strat4.name() << endl;
+  qDebug() << strat4.type() << endl;
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
-  qDebug() << Qt::endl;
-  qDebug() << "************************************************"  << Qt::endl;
-  qDebug() << "*              Protected Members               *"  << Qt::endl;
-  qDebug() << "************************************************"  << Qt::endl;
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
+  qDebug() << endl;
+  qDebug() << "************************************************"  << endl;
+  qDebug() << "*              Protected Members               *"  << endl;
+  qDebug() << "************************************************"  << endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%             setName, setType                 %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
   DerivedStrategy dstrat1;
   dstrat1.setNameType("Derived Strategy Name","Derived Strategy Type");
@@ -320,36 +320,36 @@ void IsisMain() {
   qDebug() << "Name:         " << dstrat1.name();
   qDebug() << "Type:         " << dstrat1.type();
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
 
   DerivedStrategy dstrat4(elfDictionary,lst);
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%             getGlobalDefaults                %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
   ResourceList globalDefaults = dstrat4.getGlobalDefaultsA();
 
   printResourceList(globalDefaults);
-  qDebug() << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << endl;
+  qDebug() << endl;
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%             getGlobals                       %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
   ResourceList globals = dstrat4.getGlobalsA(elven3,globalDefaults);
 
   printResourceList(globals);
-  qDebug() << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << endl;
+  qDebug() << endl;
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%             assetResourceList                %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
   QVariant resources;
   resources.setValue(R);
@@ -359,28 +359,28 @@ void IsisMain() {
   ResourceList elven1Resources =dstrat4.assetResourceListA(elven1,"R");
 
   for (int i = 0;i < elven1Resources.count(); i++) {
-    qDebug() << elven1Resources[i]->name() << Qt::endl;
+    qDebug() << elven1Resources[i]->name() << endl;
   }
 
-  qDebug() << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << endl;
+  qDebug() << endl;
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%             getDefinition                    %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
   PvlObject o = dstrat4.getDefinitionA();
-  qDebug() << o.name() << Qt::endl;
+  qDebug() << o.name() << endl;
 
-  qDebug() << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << endl;
+  qDebug() << endl;
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%             getDefinitionMap                 %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
 
 
@@ -388,28 +388,28 @@ void IsisMain() {
   printMap(map);
 
   qDebug() << "************************************************";
-  qDebug() << Qt::endl;
+  qDebug() << endl;
   qDebug() << "Testing setApplyToDiscarded(), isApplytToDiscarded(), setDoNotApplyToDiscarded()";
-  qDebug() << Qt::endl;
+  qDebug() << endl;
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%             isApplyToDiscarded               %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
   qDebug() << "isApplyToDiscarded = ";
 
   if ( dstrat4.isApplyToDiscardedA() )
-    qDebug() << "true" << Qt::endl;
+    qDebug() << "true" << endl;
   else
-    qDebug() << "false" << Qt::endl;
+    qDebug() << "false" << endl;
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%             setApplyToDiscarded              %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
 
   qDebug() << "Calling setApplyToDiscarded:  ";
@@ -417,15 +417,15 @@ void IsisMain() {
 
   qDebug() << "isApplyToDiscarded = ";
   if( dstrat4.isApplyToDiscardedA() )
-    qDebug() << "true" << Qt::endl;
+    qDebug() << "true" << endl;
   else
-    qDebug() << "false" << Qt::endl;
+    qDebug() << "false" << endl;
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%         setDoNotApplyToDiscarded             %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
 
   qDebug() << "Calling setDoNotApplyToDiscarded:  ";
@@ -433,35 +433,35 @@ void IsisMain() {
   qDebug() << "isApplyToDiscarded = ";
 
   if( dstrat4.isApplyToDiscardedA() )
-    qDebug() << "true" << Qt::endl;
+    qDebug() << "true" << endl;
   else
-    qDebug() << "false" << Qt::endl;
+    qDebug() << "false" << endl;
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%               applyToResources               %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
 
 
   int resourcesProcessed = dstrat4.applyToResourcesA(lstA,globals);
 
   //Two resources in lstA are both active
-  qDebug() << "Number of resources processed = " << resourcesProcessed << Qt::endl;
+  qDebug() << "Number of resources processed = " << resourcesProcessed << endl;
 
   discardResource(lstA,0);
   dstrat4.setDoNotApplyToDiscardedA();
   resourcesProcessed = dstrat4.applyToResourcesA(lstA,globals);
 
   qDebug() << "Number of resources processed (after discarding resource 0) = ";
-  qDebug() << resourcesProcessed << Qt::endl;
+  qDebug() << resourcesProcessed << endl;
 
   qDebug() << "Call setApplyToDiscarded:" <<endl;
   dstrat4.setApplyToDiscardedA();
   resourcesProcessed = dstrat4.applyToResourcesA(lstA,globals);
   qDebug() << "Number of resources processed (after discarding resource 0) = ";
-  qDebug() << resourcesProcessed << Qt::endl;
+  qDebug() << resourcesProcessed << endl;
 
   dstrat4.setDoNotApplyToDiscardedA();
   activateResource(lstA,0);
@@ -469,7 +469,7 @@ void IsisMain() {
   resourcesProcessed = dstrat4.applyToResourcesA(lstA,globals);
 
   qDebug() << "Number of resources processed (after activiating resource 0) = ";
-  qDebug() << resourcesProcessed << Qt::endl;
+  qDebug() << resourcesProcessed << endl;
 
 
 
@@ -485,73 +485,73 @@ void IsisMain() {
   QVariant elfPlants(elven4);
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%           processed/resetProcessed           %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
 
 
   qDebug() << "************************************************";
-  qDebug() << Qt::endl;
-  qDebug() << "Testing processed/resetProcessed:  " << Qt::endl;
+  qDebug() << endl;
+  qDebug() << "Testing processed/resetProcessed:  " << endl;
 
-  qDebug() << "Processed = " << dstrat4.processedA() << Qt::endl;
+  qDebug() << "Processed = " << dstrat4.processedA() << endl;
 
-  qDebug() << "Resetting Processed:  " << Qt::endl;
+  qDebug() << "Resetting Processed:  " << endl;
   dstrat4.resetProcessedA();
 
-  qDebug() << "Processed = " << dstrat4.processedA() << Qt::endl;
+  qDebug() << "Processed = " << dstrat4.processedA() << endl;
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%                  countActive                 %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
-  qDebug() << "Testing countActive/countDiscard:  " << Qt::endl;
+  qDebug() << "Testing countActive/countDiscard:  " << endl;
 
-  qDebug() << "Active Resources in ResourseList lst:"  << dstrat4.countActiveA(lst) << Qt::endl;
+  qDebug() << "Active Resources in ResourseList lst:"  << dstrat4.countActiveA(lst) << endl;
 
-  qDebug() << "Discarded Resources in ResourceList lst:"  << dstrat4.countDiscardedA(lst) << Qt::endl;
+  qDebug() << "Discarded Resources in ResourceList lst:"  << dstrat4.countDiscardedA(lst) << endl;
 
-  qDebug() << "Discarding the first resource in ResourceList lst:" << Qt::endl;
+  qDebug() << "Discarding the first resource in ResourceList lst:" << endl;
 
   discardResource(lst,0);
 
-  qDebug() << "Discarded Resources in ResourceList lst:"  << dstrat4.countDiscardedA(lst) << Qt::endl;
+  qDebug() << "Discarded Resources in ResourceList lst:"  << dstrat4.countDiscardedA(lst) << endl;
 
-  qDebug() << "Active Resources in ResourceList lst:"  << dstrat4.countActiveA(lst) << Qt::endl;
+  qDebug() << "Active Resources in ResourceList lst:"  << dstrat4.countActiveA(lst) << endl;
 
   activateResource(lst,0);
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%             findreplacement                  %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
 
   qDebug() << "Searching for elvish word for demon (with default args):  ";
-  qDebug() << dstrat4.findReplacementA("demon",lst)  << Qt::endl;
+  qDebug() << dstrat4.findReplacementA("demon",lst)  << endl;
 
-  qDebug() <<"Searching for value not in the ResourceList:  "<< Qt::endl;
+  qDebug() <<"Searching for value not in the ResourceList:  "<< endl;
 
   QString searchKey = "fluffy bunny";
   QString failMsg = "Could not find "+searchKey;
-  qDebug() << dstrat4.findReplacementA(searchKey,lst,0,failMsg)  << Qt::endl;
+  qDebug() << dstrat4.findReplacementA(searchKey,lst,0,failMsg)  << endl;
 
 
-  qDebug() << "Searching for the 100th demon (which is not in lst:  "<< Qt::endl;
-  qDebug() << dstrat4.findReplacementA(searchKey,lst,100,"100th demon not in lst")  << Qt::endl;
+  qDebug() << "Searching for the 100th demon (which is not in lst:  "<< endl;
+  qDebug() << dstrat4.findReplacementA(searchKey,lst,100,"100th demon not in lst")  << endl;
 
-  qDebug() << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << endl;
+  qDebug() << endl;
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%                qualifiers                    %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
 
   QString elvishWordsStartingWithA  = "Aaye,Aelin,Adan,Adanedhel,Aduial,Aglarond";
@@ -561,186 +561,186 @@ void IsisMain() {
   QStringList aWords = dstrat4.qualifiersA(elvishWordsStartingWithA,",");
 
   for (int i = 0; i < aWords.count(); i++ ) {
-    qDebug() << aWords[i] << Qt::endl;
+    qDebug() << aWords[i] << endl;
   }
 
 
-  qDebug() << Qt::endl;
-  qDebug() << "Testing qualifiers with default delimiter (::):  " << Qt::endl;
+  qDebug() << endl;
+  qDebug() << "Testing qualifiers with default delimiter (::):  " << endl;
 
 
   QStringList aWords1 = dstrat4.qualifiersA(elvishWordsStartingWithA1);
 
   for (int i = 0; i < aWords1.count(); i++ ) {
-    qDebug() << aWords1[i] << Qt::endl;
+    qDebug() << aWords1[i] << endl;
   }
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%               scanAndReplace                 %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
   QString originalSentence("Balrogs require much fnord love and fnord attention.");
   QString fixedSentence = dstrat4.scanAndReplaceA(originalSentence,"fnord","");
 
-  qDebug() << "Original sentence:  "  << originalSentence << Qt::endl;
-  qDebug() << "Fixed sentence:  "  << fixedSentence << Qt::endl;
+  qDebug() << "Original sentence:  "  << originalSentence << endl;
+  qDebug() << "Fixed sentence:  "  << fixedSentence << endl;
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%             translateKeywordArgs             %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
 
   QString modifiedKeyword = dstrat4.translateKeywordArgsA("shield-wall",lst,"blah");
 
-  qDebug() << modifiedKeyword << Qt::endl;
+  qDebug() << modifiedKeyword << endl;
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%                 processArgs                  %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
   QStringList argKeys;
 
   argKeys << "demon" << "dark"  << "shield-wall";
 
-  qDebug() << dstrat4.processArgsA("balrog",argKeys,lst,"default resource") << Qt::endl;
+  qDebug() << dstrat4.processArgsA("balrog",argKeys,lst,"default resource") << endl;
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%                propagateKeys                 %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
 
-  qDebug() << "Propagating keys from Shared Resource elven2 -> elven3"  << Qt::endl;
-  qDebug() << "elven3 keys before propagation:" << Qt::endl;
+  qDebug() << "Propagating keys from Shared Resource elven2 -> elven3"  << endl;
+  qDebug() << "elven3 keys before propagation:" << endl;
 
   printMap(elven3->keys());
 
   dstrat4.propagateKeysA(elven2,elven3);
-  qDebug() << Qt::endl;
-  qDebug() << "elven3 keys after propagation:" << Qt::endl;
+  qDebug() << endl;
+  qDebug() << "elven3 keys after propagation:" << endl;
 
 
   printMap(elven3->keys());
 
-  qDebug() << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << endl;
+  qDebug() << endl;
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%    activeList/deactivateList/activateList    %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
   ResourceList l1 = dstrat4.activeListA(lst);
   printResourceList(l1);
   qDebug() << "Number of active resources in DerivedStrategy dstrat4 = ";
-  qDebug() << l1.count() << Qt::endl;
+  qDebug() << l1.count() << endl;
 
-  qDebug() << "************************************************" << Qt::endl;
-  qDebug() << "Testing deactivateList" << Qt::endl;
+  qDebug() << "************************************************" << endl;
+  qDebug() << "Testing deactivateList" << endl;
 
   dstrat4.deactivateListA(lst);
   qDebug() << "Number of active resources in DerivedStrategy dstrat4 = ";
-  qDebug() << dstrat4.countActiveA(lst) << Qt::endl;
+  qDebug() << dstrat4.countActiveA(lst) << endl;
 
 
-  qDebug() << "************************************************" << Qt::endl;
-  qDebug() << "Testing activateList" << Qt::endl;
+  qDebug() << "************************************************" << endl;
+  qDebug() << "Testing activateList" << endl;
   dstrat4.activateListA(lst);
   ResourceList l2 = dstrat4.activeListA(lst);
-  qDebug() <<"Number of active resources = " << l2.count() << Qt::endl;
+  qDebug() <<"Number of active resources = " << l2.count() << endl;
 
-  qDebug() << "************************************************" << Qt::endl;
-  qDebug() << "Deactivating Resource 0 in ResourceList lst:" << Qt::endl;
+  qDebug() << "************************************************" << endl;
+  qDebug() << "Deactivating Resource 0 in ResourceList lst:" << endl;
   discardResource(lst,0);
   ResourceList l3 = dstrat4.activeListA(lst);
-  qDebug() <<"Number of active resources = " << l3.count() << Qt::endl;
+  qDebug() <<"Number of active resources = " << l3.count() << endl;
   activateResource(lst,0);
 
-  qDebug() << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << endl;
+  qDebug() << endl;
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%                  copyList                    %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
-  qDebug() << "Testing copyList (globals -> l5)" << Qt::endl;
+  qDebug() << "Testing copyList (globals -> l5)" << endl;
   ResourceList l5 = dstrat4.copyListA(globals);
   printResourceList(l5);
-  qDebug() << "Decativating l5 Resources (global resources are active)" << Qt::endl;
+  qDebug() << "Decativating l5 Resources (global resources are active)" << endl;
   dstrat4.deactivateListA(l5);
 
-  qDebug() <<"Number of active resources in l5 = " << dstrat4.countActiveA(l5) << Qt::endl;
-  qDebug() <<"Number of active resources in global = " << dstrat4.countActiveA(globals) << Qt::endl;
-  qDebug() << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() <<"Number of active resources in l5 = " << dstrat4.countActiveA(l5) << endl;
+  qDebug() <<"Number of active resources in global = " << dstrat4.countActiveA(globals) << endl;
+  qDebug() << endl;
+  qDebug() << endl;
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%                  cloneList                   %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
 
-  qDebug() << "Testing cloneList (globals -> l6)" << Qt::endl;
+  qDebug() << "Testing cloneList (globals -> l6)" << endl;
   ResourceList l6 = dstrat4.cloneListA(globals);
   printResourceList(l6);
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%                  isDebug                     %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
-  qDebug() << "Testing isDebug():" << Qt::endl;
-  qDebug() << "isDebug() = " << dstrat4.isDebugA() << Qt::endl;
+  qDebug() << "Testing isDebug():" << endl;
+  qDebug() << "isDebug() = " << dstrat4.isDebugA() << endl;
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%                doShowProgress                %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
-  qDebug() << "Testing doShowProgress():" << Qt::endl;
-  qDebug() << "doShowProgress() = "<< dstrat4.doShowProgressA() << Qt::endl;
+  qDebug() << "Testing doShowProgress():" << endl;
+  qDebug() << "doShowProgress() = "<< dstrat4.doShowProgressA() << endl;
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%                initProgress                  %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
-  qDebug() << "Testing initProgress():" << Qt::endl;
-  qDebug() << "Calling: initProgress() =  " << dstrat4.initProgressA() << Qt::endl;
+  qDebug() << "Testing initProgress():" << endl;
+  qDebug() << "Calling: initProgress() =  " << dstrat4.initProgressA() << endl;
   qDebug() << "Calling: initProgress(2,\"some text\") = ";
-  qDebug() <<  dstrat4.initProgressA(2,"some text")<< Qt::endl;
+  qDebug() <<  dstrat4.initProgressA(2,"some text")<< endl;
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%                  composite                   %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
+  qDebug() << endl;
 
-  qDebug() << "Testing composite(...):" << Qt::endl;
+  qDebug() << "Testing composite(...):" << endl;
   SharedResource shared = dstrat4.compositeA(elven2,elven3,qMakePair(QString("A"),QString("B")));
   PvlFlatMap mp = shared->keys();
   printMap(mp);
-  qDebug() << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << endl;
+  qDebug() << endl;
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%                 importGeometry               %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
+  qDebug() << endl;
 
   //This call will fail
   dstrat4.importGeometryA(elven1,lst);
@@ -771,15 +771,15 @@ void IsisMain() {
 
   //This call succeeds
   qDebug() << "importGeometry = ";
-  qDebug() << geoms.importGeometryA(line2,lines)  << Qt::endl;
-  qDebug() << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << geoms.importGeometryA(line2,lines)  << endl;
+  qDebug() << endl;
+  qDebug() << endl;
 
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%                  getObjectList               %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
   PvlObject obj("O");
   PvlObject obj1("O1");
@@ -792,18 +792,18 @@ void IsisMain() {
   QStringList objList = dstrat4.getObjectListA(obj);
 
   for (int i = 0; i < objList.count(); i++ )
-    qDebug() << objList[i] << Qt::endl;
+    qDebug() << objList[i] << endl;
 
-  qDebug() << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << endl;
+  qDebug() << endl;
 
 
   //This test needs to be added to.
 
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
   qDebug() << "%         applyToIntersectedGeometry           %";
-  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << Qt::endl;
-  qDebug() << Qt::endl;
+  qDebug() << "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" << endl;
+  qDebug() << endl;
 
 
   GisGeometry emptyGeom;
@@ -814,7 +814,7 @@ void IsisMain() {
   }
   catch(IException &e){
 
-  qDebug() << e.toString() << Qt::endl;
+  qDebug() << e.toString() << endl;
 
   }
 

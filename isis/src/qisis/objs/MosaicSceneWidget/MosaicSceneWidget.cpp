@@ -1457,7 +1457,7 @@ namespace Isis {
     TextFile file(output, "overwrite");
 
     QList<MosaicSceneItem *> sorted = *m_mosaicSceneItems;
-    std::sort(sorted.begin(), sorted.end(), zOrderGreaterThan);
+    qSort(sorted.begin(), sorted.end(), zOrderGreaterThan);
 
     MosaicSceneItem *sceneItem;
     foreach(sceneItem, sorted) {

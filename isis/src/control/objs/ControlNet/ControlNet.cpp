@@ -1151,7 +1151,7 @@ namespace Isis {
 
     // Sort the measures
     ControlMeasureLessThanFunctor lessThan(statFunc);
-    std::sort(measures.begin(),measures.end(),lessThan);
+    qSort(measures.begin(),measures.end(),lessThan);
 
     return measures;
   }

@@ -147,7 +147,7 @@ namespace Isis {
           }
 
           QStringList cnetNames = cnetChoices.values();
-          cnetNames.sort();
+          qSort(cnetNames);
 
           QString choice = QInputDialog::getItem(NULL, tr("Select Control"),
               tr("Please choose a control to export."), cnetNames, 0, false, &success);

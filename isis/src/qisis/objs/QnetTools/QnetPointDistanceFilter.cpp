@@ -152,7 +152,7 @@ namespace Isis {
     }
 
     // Sort QList of filtered points before displaying list to user
-    std::sort(temp.begin(), temp.end());
+    qSort(temp.begin(), temp.end());
     // replace existing filter list with this one
     filteredPoints() = temp;
 

@@ -70,8 +70,8 @@ namespace Isis {
     }
 
     if (!foundMatch) {
-      trues.sort();
-      falses.sort();
+      qSort(trues);
+      qSort(falses);
       QString message = QObject::tr("Failed to convert string [%1] to a boolean. "
           "Please specify one of [%2] for true, or one of [%3] for false.")
             .arg(string).arg(trues.join(", ")).arg(falses.join(", "));

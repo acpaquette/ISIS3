@@ -35,7 +35,7 @@ int main(int argc, char *argv[]) {
   try {
     Preference::Preferences(true);
     qDebug() << "Testing EmbreeTargetManager";
-    qDebug() << Qt::endl;
+    qDebug() << endl;
 
     qDebug() << "Get an instance of the target manager";
     EmbreeTargetManager *manager = EmbreeTargetManager::getInstance();

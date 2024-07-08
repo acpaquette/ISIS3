@@ -38,7 +38,7 @@ using namespace Isis;
  */
 
  void ReportError(QString err) {
-   qDebug() << err.replace(QRegularExpression("(\\/[\\w\\-\\. ]*)+\\/base"), "base") << Qt::endl;
+   qDebug() << err.replace(QRegularExpression("(\\/[\\w\\-\\. ]*)+\\/base"), "base") << endl;
  }
 
 int main(int argc, char *argv[]) {

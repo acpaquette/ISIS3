@@ -357,7 +357,7 @@ void IsisMain() {
  */
 void PrintControlNetInfo(ControlNet &pCNet) {
   QList<QString> pointIds(pCNet.GetPointIds());
-  pointIds.sort();
+  qSort(pointIds);
 
   for (int i = 0; i < pointIds.size(); i++) {
     const QString &pointId = pointIds[i];
@@ -365,7 +365,7 @@ void PrintControlNetInfo(ControlNet &pCNet) {
 
     cerr << "Control Point ID  " << pointId.toStdString() << endl;
     QList<QString> serialNums(controlPoint->getCubeSerialNumbers());
-    serialNums.sort();
+    qSort(serialNums);
     for (int j = 0; j < serialNums.size(); j++) {
       const QString &serialNum = serialNums.at(j);
       cerr << "   Measure SerialNum "
