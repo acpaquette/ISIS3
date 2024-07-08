@@ -153,7 +153,7 @@ void createMosaicCube(QString inputName, QString outputName, QVector<QString> ba
   ProcessByLine p;
 
   CubeAttributeInput inAtt = CubeAttributeInput();
-  inAtt.setBands(std::vector<QString>(bandsVector.begin(), bandsVector.end()));
+  inAtt.setBands(bandsVector.toStdVector());
 
   p.SetInputCube(inputName, inAtt);
   p.SetOutputCube("TO");
