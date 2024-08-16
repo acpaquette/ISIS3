@@ -26,8 +26,8 @@ void IsisMain() {
   UserInterface &ui = Application::GetUserInterface();
 
   QString inFile = ui.GetFileName("FROM");
-  Pvl lab(inFile);
-  QString dataFile = lab.findKeyword("FILE_NAME")[0];
+  Pvl lab(inFile.toStdString());
+  QString dataFile = QString::fromStdString(lab.findKeyword("FILE_NAME")[0]);
 
   // Detached labels use format keyword = "dataFile" value <unit>
   int keywordIndex = 1;
@@ -71,27 +71,27 @@ void IsisMain() {
   int qaptr = 0;
 
   if (lab.hasKeyword("^SP_SPECTRUM_WAV")) {
-    wavptr = toInt(lab.findKeyword("^SP_SPECTRUM_WAV")[keywordIndex]) - 1;
+    wavptr = std::stoi(lab.findKeyword("^SP_SPECTRUM_WAV")[keywordIndex]) - 1;
   }
   if (lab.hasKeyword("^SP_SPECTRUM_RAW")) {
-    rawptr = toInt(lab.findKeyword("^SP_SPECTRUM_RAW")[keywordIndex]) - 1;
+    rawptr = std::stoi(lab.findKeyword("^SP_SPECTRUM_RAW")[keywordIndex]) - 1;
   }
   if (lab.hasKeyword("^SP_SPECTRUM_RAD")) {
-    radptr = toInt(lab.findKeyword("^SP_SPECTRUM_RAD")[keywordIndex]) - 1;
+    radptr = std::stoi(lab.findKeyword("^SP_SPECTRUM_RAD")[keywordIndex]) - 1;
   }
   //older-format file without calibrated NIR2 data
   if (lab.hasKeyword("^SP_SPECTRUM_REF")) {
-    refptr1 = toInt(lab.findKeyword("^SP_SPECTRUM_REF")[keywordIndex]) - 1;
+    refptr1 = std::stoi(lab.findKeyword("^SP_SPECTRUM_REF")[keywordIndex]) - 1;
   }
   //newer-format file with calibrated NIR2 data and 2 different Reflectances
   if (lab.hasKeyword("^SP_SPECTRUM_REF1")) {
-    refptr1 = toInt(lab.findKeyword("^SP_SPECTRUM_REF1")[keywordIndex]) - 1;
+    refptr1 = std::stoi(lab.findKeyword("^SP_SPECTRUM_REF1")[keywordIndex]) - 1;
   }
   if (lab.hasKeyword("^SP_SPECTRUM_REF2")) {
-    refptr2 = toInt(lab.findKeyword("^SP_SPECTRUM_REF2")[keywordIndex]) - 1;
+    refptr2 = std::stoi(lab.findKeyword("^SP_SPECTRUM_REF2")[keywordIndex]) - 1;
   }
   if (lab.hasKeyword("^SP_SPECTRUM_QA")) {
-    qaptr = toInt(lab.findKeyword("^SP_SPECTRUM_QA")[keywordIndex]) - 1;
+    qaptr = std::stoi(lab.findKeyword("^SP_SPECTRUM_QA")[keywordIndex]) - 1;
   }
 
   FILE *spcptr;
@@ -119,10 +119,10 @@ void IsisMain() {
   }
 
   PvlObject wavobj = lab.findObject("SP_SPECTRUM_WAV");
-  int wavlines = toInt(wavobj.findKeyword("LINES")[0]);
-  int wavsamps = toInt(wavobj.findKeyword("LINE_SAMPLES")[0]);
-  QString wavtype = wavobj.findKeyword("SAMPLE_TYPE");
-  int wavbits = toInt(wavobj.findKeyword("SAMPLE_BITS")[0]);
+  int wavlines = std::stoi(wavobj.findKeyword("LINES")[0]);
+  int wavsamps = std::stoi(wavobj.findKeyword("LINE_SAMPLES")[0]);
+  QString wavtype = QString::fromStdString(wavobj.findKeyword("SAMPLE_TYPE"));
+  int wavbits = std::stoi(wavobj.findKeyword("SAMPLE_BITS")[0]);
   if (wavlines != 1 || wavsamps != 296 || wavtype != "MSB_UNSIGNED_INTEGER" ||
       wavbits != 16) {
     QString msg = "Wavelength data in input file does not meet the following ";
@@ -130,13 +130,13 @@ void IsisMain() {
     msg += "BitType: 16";
     throw IException(IException::User, msg, _FILEINFO_);
   }
-  QString keyval = wavobj.findKeyword("SCALING_FACTOR")[0];
+  QString keyval = QString::fromStdString(wavobj.findKeyword("SCALING_FACTOR")[0]);
   bool ok;
   double wavscale = keyval.toDouble(&ok);
   if (!ok) {
     wavscale = 1.0;
   }
-  keyval = wavobj.findKeyword("OFFSET")[0];
+  keyval = QString::fromStdString(wavobj.findKeyword("OFFSET")[0]);
   double wavoffset = keyval.toDouble(&ok);
   if (!ok) {
     wavoffset = 0.0;
@@ -158,10 +158,10 @@ void IsisMain() {
   }
 
   PvlObject rawobj = lab.findObject("SP_SPECTRUM_RAW");
-  int rawlines = toInt(rawobj.findKeyword("LINES")[0]);
-  int rawsamps = toInt(rawobj.findKeyword("LINE_SAMPLES")[0]);
-  QString rawtype = rawobj.findKeyword("SAMPLE_TYPE");
-  int rawbits = toInt(rawobj.findKeyword("SAMPLE_BITS")[0]);
+  int rawlines = std::stoi(rawobj.findKeyword("LINES")[0]);
+  int rawsamps = std::stoi(rawobj.findKeyword("LINE_SAMPLES")[0]);
+  QString rawtype = QString::fromStdString(rawobj.findKeyword("SAMPLE_TYPE"));
+  int rawbits = std::stoi(rawobj.findKeyword("SAMPLE_BITS")[0]);
   if (rawsamps != 296 || rawtype != "MSB_UNSIGNED_INTEGER" ||
       rawbits != 16) {
     QString msg = "Raw data in input file does not meet the following ";
@@ -169,12 +169,12 @@ void IsisMain() {
     msg += "BitType: 16";
     throw IException(IException::User, msg, _FILEINFO_);
   }
-  keyval = rawobj.findKeyword("SCALING_FACTOR")[0];
+  keyval = QString::fromStdString(rawobj.findKeyword("SCALING_FACTOR")[0]);
   double rawscale = keyval.toDouble(&ok);
   if (!ok) {
     rawscale = 1.0;
   }
-  keyval = rawobj.findKeyword("OFFSET")[0];
+  keyval = QString::fromStdString(rawobj.findKeyword("OFFSET")[0]);
   double rawoffset = keyval.toDouble(&ok);
   if (!ok) {
     rawoffset = 0.0;
@@ -196,10 +196,10 @@ void IsisMain() {
   }
 
   PvlObject qaobj = lab.findObject("SP_SPECTRUM_QA");
-  int qalines = toInt(qaobj.findKeyword("LINES")[0]);
-  int qasamps = toInt(qaobj.findKeyword("LINE_SAMPLES")[0]);
-  QString qatype = qaobj.findKeyword("SAMPLE_TYPE");
-  int qabits = toInt(qaobj.findKeyword("SAMPLE_BITS")[0]);
+  int qalines = std::stoi(qaobj.findKeyword("LINES")[0]);
+  int qasamps = std::stoi(qaobj.findKeyword("LINE_SAMPLES")[0]);
+  QString qatype = QString::fromStdString(qaobj.findKeyword("SAMPLE_TYPE"));
+  int qabits = std::stoi(qaobj.findKeyword("SAMPLE_BITS")[0]);
   if (qalines != rawlines || qasamps != 296 || qatype != "MSB_UNSIGNED_INTEGER" ||
       qabits != 16) {
     QString msg = "Quality Assessment data in input file does not meet the ";
@@ -207,12 +207,12 @@ void IsisMain() {
     msg += "BitType=16";
     throw IException(IException::User, msg, _FILEINFO_);
   }
-  keyval = qaobj.findKeyword("SCALING_FACTOR")[0];
+  keyval = QString::fromStdString(qaobj.findKeyword("SCALING_FACTOR")[0]);
   double qascale = keyval.toDouble(&ok);
   if (!ok) {
     qascale = 1.0;
   }
-  keyval = qaobj.findKeyword("OFFSET")[0];
+  keyval = QString::fromStdString(qaobj.findKeyword("OFFSET")[0]);
   double qaoffset = keyval.toDouble(&ok);
   if (!ok) {
     qaoffset = 0.0;
@@ -234,10 +234,10 @@ void IsisMain() {
   }
 
   PvlObject radobj = lab.findObject("SP_SPECTRUM_RAD");
-  int radlines = toInt(radobj.findKeyword("LINES")[0]);
-  int radsamps = toInt(radobj.findKeyword("LINE_SAMPLES")[0]);
-  QString radtype = radobj.findKeyword("SAMPLE_TYPE");
-  int radbits = toInt(radobj.findKeyword("SAMPLE_BITS")[0]);
+  int radlines = std::stoi(radobj.findKeyword("LINES")[0]);
+  int radsamps = std::stoi(radobj.findKeyword("LINE_SAMPLES")[0]);
+  QString radtype = QString::fromStdString(radobj.findKeyword("SAMPLE_TYPE"));
+  int radbits = std::stoi(radobj.findKeyword("SAMPLE_BITS")[0]);
   if (radlines != qalines || radsamps != 296 || radtype != "MSB_UNSIGNED_INTEGER" ||
       radbits != 16) {
     QString msg = "Radiance data in input file does not meet the following ";
@@ -245,12 +245,12 @@ void IsisMain() {
     msg += "BitType=16";
     throw IException(IException::User, msg, _FILEINFO_);
   }
-  keyval = radobj.findKeyword("SCALING_FACTOR")[0];
+  keyval = QString::fromStdString(radobj.findKeyword("SCALING_FACTOR")[0]);
   double radscale = keyval.toDouble(&ok);
   if (!ok) {
     radscale = 1.0;
   }
-  keyval = radobj.findKeyword("OFFSET")[0];
+  keyval = QString::fromStdString(radobj.findKeyword("OFFSET")[0]);
   double radoffset = keyval.toDouble(&ok);
   if (!ok) {
     radoffset = 0.0;
@@ -282,10 +282,10 @@ void IsisMain() {
     refobj2 = lab.findObject("SP_SPECTRUM_REF2");
   }
 
-  int reflines = toInt(refobj.findKeyword("LINES")[0]);
-  int refsamps = toInt(refobj.findKeyword("LINE_SAMPLES")[0]);
-  QString reftype = refobj.findKeyword("SAMPLE_TYPE");
-  int refbits = toInt(refobj.findKeyword("SAMPLE_BITS")[0]);
+  int reflines = std::stoi(refobj.findKeyword("LINES")[0]);
+  int refsamps = std::stoi(refobj.findKeyword("LINE_SAMPLES")[0]);
+  QString reftype = QString::fromStdString(refobj.findKeyword("SAMPLE_TYPE"));
+  int refbits = std::stoi(refobj.findKeyword("SAMPLE_BITS")[0]);
   if (reflines != radlines || refsamps != 296 || reftype != "MSB_UNSIGNED_INTEGER" ||
       refbits != 16) {
     QString msg = "Reflectance data in input file does not meet the following ";
@@ -293,12 +293,12 @@ void IsisMain() {
     msg += "BitType=16";
     throw IException(IException::User, msg, _FILEINFO_);
   }
-  keyval = refobj.findKeyword("SCALING_FACTOR")[0];
+  keyval = QString::fromStdString(refobj.findKeyword("SCALING_FACTOR")[0]);
   double refscale = keyval.toDouble(&ok);
   if (!ok) {
     refscale = 1.0;
   }
-  keyval = refobj.findKeyword("OFFSET")[0];
+  keyval = QString::fromStdString(refobj.findKeyword("OFFSET")[0]);
   double refoffset = keyval.toDouble(&ok);
   if (!ok) {
     refoffset = 0.0;
@@ -323,10 +323,10 @@ void IsisMain() {
   //import reflectance 2 if it exists
   double *ref2 = NULL;
   if (lab.hasKeyword("^SP_SPECTRUM_REF2")) {
-    int reflines2 = toInt(refobj2.findKeyword("LINES")[0]);
-    int refsamps2 = toInt(refobj2.findKeyword("LINE_SAMPLES")[0]);
-    QString reftype2 = refobj2.findKeyword("SAMPLE_TYPE");
-    int refbits2 = toInt(refobj2.findKeyword("SAMPLE_BITS")[0]);
+    int reflines2 = std::stoi(refobj2.findKeyword("LINES")[0]);
+    int refsamps2 = std::stoi(refobj2.findKeyword("LINE_SAMPLES")[0]);
+    QString reftype2 = QString::fromStdString(refobj2.findKeyword("SAMPLE_TYPE"));
+    int refbits2 = std::stoi(refobj2.findKeyword("SAMPLE_BITS")[0]);
     if (reflines2 != radlines || refsamps2 != 296 || reftype2 != "MSB_UNSIGNED_INTEGER" ||
      refbits2 != 16) {
      QString msg = "Reflectance #2 data in input file does not meet the following ";
@@ -335,12 +335,12 @@ void IsisMain() {
      throw IException(IException::User, msg, _FILEINFO_);
     }
 
-    keyval = refobj2.findKeyword("SCALING_FACTOR")[0];
+    keyval = QString::fromStdString(refobj2.findKeyword("SCALING_FACTOR")[0]);
     double refscale2 = keyval.toDouble(&ok);
     if (!ok) {
       refscale2 = 1.0;
     }
-    keyval = refobj2.findKeyword("OFFSET")[0];
+    keyval = QString::fromStdString(refobj2.findKeyword("OFFSET")[0]);
     double refoffset2 = keyval.toDouble(&ok);
     if (!ok) {
       refoffset2 = 0.0;
