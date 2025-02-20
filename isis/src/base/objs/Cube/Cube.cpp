@@ -107,15 +107,15 @@ namespace Isis {
     CPLSetErrorHandler(CPLQuietErrorHandler);
     fromLabel(fileName, label, access);
 
+    close();
+    open(fileName.toString(), access);
+
     PvlGroup &instGrp = label.findGroup("Instrument", Pvl::Traverse);
     if (isd.contains("line_scan_rate") && (QString)instGrp["InstrumentId"] == "HRSC") {
       attachLineScanTableFromIsd(isd);
     }
-    
-    attachSpiceFromIsd(isd);
 
-    close();
-    open(fileName.toString(), access);
+    attachSpiceFromIsd(isd);
   }
 
   /**
@@ -1887,23 +1887,23 @@ namespace Isis {
   }
 
   void Cube::attachLineScanTableFromIsd(nlohmann::json isd) {
-      TableField ephTimeField("EphemerisTime", TableField::Double);
-      TableField expTimeField("ExposureTime", TableField::Double);
-      TableField lineStartField("LineStart", TableField::Integer);
+    TableField ephTimeField("EphemerisTime", TableField::Double);
+    TableField expTimeField("ExposureTime", TableField::Double);
+    TableField lineStartField("LineStart", TableField::Integer);
 
-      TableRecord timesRecord;
-      timesRecord += ephTimeField;
-      timesRecord += expTimeField;
-      timesRecord += lineStartField;
+    TableRecord timesRecord;
+    timesRecord += ephTimeField;
+    timesRecord += expTimeField;
+    timesRecord += lineStartField;
 
-      Table timesTable("LineScanTimes", timesRecord);
-      for (size_t i = 0; i < isd["line_scan_rate"].size(); ++i) {
-        timesRecord[0] = isd["line_scan_rate"][i][1].get<double>() + isd["center_ephemeris_time"].get<double>();
-        timesRecord[1] = isd["line_scan_rate"][i][2].get<double>();
-        timesRecord[2] = (int)(isd["line_scan_rate"][i][0].get<double>() + 0.5);
-        timesTable += timesRecord;
-      }
-      this->write(timesTable);
+    Table timesTable("LineScanTimes", timesRecord);
+    for (size_t i = 0; i < isd["line_scan_rate"].size(); ++i) {
+      timesRecord[0] = isd["line_scan_rate"][i][1].get<double>() + isd["center_ephemeris_time"].get<double>();
+      timesRecord[1] = isd["line_scan_rate"][i][2].get<double>();
+      timesRecord[2] = (int)(isd["line_scan_rate"][i][0].get<double>() + 0.5);
+      timesTable += timesRecord;
+    }
+    this->write(timesTable);
   }
 
 
@@ -3024,7 +3024,6 @@ namespace Isis {
       // update metadata
       nlohmann::ordered_json jsonblob = this->label()->toJson()["Root"];
       nlohmann::ordered_json jsonOut;
-      // std::cout << jsonblob << std::endl;
       for (auto& [key, val] : jsonblob.items()) {
         if (!val.contains("Bytes") || key == "Label") {
           jsonOut[key] = val;
