@@ -20,9 +20,11 @@ static QString APP_XML = FileName("$ISISROOT/bin/xml/caminfo.xml").expanded();
 
 TEST_F(DefaultCube, FunctionalTestCaminfoCsv) {
     QString outFlatFileName = tempDir.path() + "/outTemp.csv";
+    int linc = 40;
+    int sinc = 40;
     QVector<QString> flatArgs = {"from="+ testCube->fileName(),  "to="+outFlatFileName,
         "FORMAT=flat", "APPEND=false", "STATISTICS=true", "CAMSTATS=true",
-        "GEOMETRY=true", "spice=true"};
+        "GEOMETRY=true", "spice=true", "linc=" + toString(linc), "sinc=" + toString(sinc)};
 
     UserInterface flatOptions(APP_XML, flatArgs);
     try {
@@ -35,7 +37,7 @@ TEST_F(DefaultCube, FunctionalTestCaminfoCsv) {
     QString outPvlFileName = tempDir.path() + "/outTemp.pvl";
     QVector<QString> pvlArgs = {"from="+ testCube->fileName(),  "to="+outPvlFileName,
         "FORMAT=PVL", "APPEND=false", "STATISTICS=true", "CAMSTATS=true",
-        "GEOMETRY=true", "spice=true"};
+        "GEOMETRY=true", "spice=true", "linc=" + toString(linc), "sinc=" + toString(sinc)};
 
     UserInterface pvlOptions(APP_XML, pvlArgs);
     try {
@@ -210,7 +212,7 @@ TEST_F(DefaultCube, FunctionalTestCaminfoDefault) {
     QString outFileName = tempDir.path() + "/outTemp.csv";
     QVector<QString> args = {"to="+outFileName,
         "ISISLABEL=true", "STATISTICS=true", "CAMSTATS=true",
-        "POLYGON=true", "polysinc=100", "polylinc=100"};
+        "POLYGON=true", "polysinc=100", "polylinc=100", "linc=40", "sinc=40"};
 
     UserInterface options(APP_XML, args);
     try {
@@ -229,63 +231,63 @@ TEST_F(DefaultCube, FunctionalTestCaminfoDefault) {
 
     EXPECT_NEAR(camstats.findKeyword("LatitudeMinimum"), 9.9286479874788, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("LatitudeMaximum"), 10.434709753119, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("LatitudeAverage"), 10.181983206084, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("LatitudeStandardDeviation"), 0.11084102743244, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("LatitudeAverage"), 10.18535043516, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("LatitudeStandardDeviation"), 0.11722731370236, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("LongitudeMinimum"), 255.64554871862, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("LongitudeMaximum"), 256.14606952525, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("LongitudeAverage"), 255.89390491018, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("LongitudeStandardDeviation"), 0.10658330458136, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("LongitudeAverage"), 255.90012568458999, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("LongitudeStandardDeviation"), 0.11261651543457001, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("SampleResolutionMinimum"), 18.840683425668, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("SampleResolutionMaximum"), 18.985953877822, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("SampleResolutionAverage"), 18.90816559308, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("SampleResolutionStandardDeviation"), 0.038060007171614, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("SampleResolutionAverage"), 18.910264998885001, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("SampleResolutionStandardDeviation"), 0.040230148105502003, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("LineResolutionMinimum"), 18.840683425668, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("LineResolutionMaximum"), 18.985953877822, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("LineResolutionAverage"), 18.90816559308, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("LineResolutionStandardDeviation"), 0.038060007171614, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("LineResolutionAverage"), 18.910264998885001, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("LineResolutionStandardDeviation"), 0.040230148105502003, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("ResolutionMinimum"), 18.840683425668, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("ResolutionMaximum"), 18.985953877822, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("ResolutionAverage"), 18.90816559308, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("ResolutionStandardDeviation"), 0.038060007171614, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("ObliqueSampleResolutionMinimum"), 18.967781671350998, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("ObliqueSampleResolutionMaximum"), 21.179434547755999, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("ObliqueSampleResolutionAverage"), 19.550786846366002, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("ObliqueSampleResolutionStandardDeviation"), 0.21126188466418, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("ObliqueLineResolutionMinimum"), 18.967781671350998, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("ObliqueLineResolutionMaximum"), 21.179434547755999, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("ObliqueLineResolutionAverage"), 19.550786846366002, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("ObliqueLineResolutionStandardDeviation"), 0.21126188466418, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("ObliqueResolutionMinimum"), 18.967781671350998, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("ObliqueResolutionMaximum"), 21.179434547755999, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("ObliqueResolutionAverage"), 19.550786846366002, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("ObliqueResolutionStandardDeviation"), 0.21126188466418, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("ResolutionAverage"), 18.910264998885001, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("ResolutionStandardDeviation"), 0.040230148105502003, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("ObliqueSampleResolutionMinimum"), 19.070039735940998, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("ObliqueSampleResolutionMaximum"), 20.262297908284001, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("ObliqueSampleResolutionAverage"), 19.555387487320999, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("ObliqueSampleResolutionStandardDeviation"), 0.21528137865297001, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("ObliqueLineResolutionMinimum"), 19.070039735940998, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("ObliqueLineResolutionMaximum"), 20.262297908284001, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("ObliqueLineResolutionAverage"), 19.555387487320999, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("ObliqueLineResolutionStandardDeviation"), 0.21528137865297001, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("ObliqueResolutionMinimum"), 19.070039735940998, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("ObliqueResolutionMaximum"), 20.262297908284001, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("ObliqueResolutionAverage"), 19.555387487320999, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("ObliqueResolutionStandardDeviation"), 0.21528137865297001, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("AspectRatioMinimum"), 1.0, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("AspectRatioAverage"), 1.0, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("AspectRatioStandardDeviation"), 0.0, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("PhaseMinimum"), 79.756143590222, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("PhaseMaximum"), 81.304900313013, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("PhaseAverage"), 80.529097153288, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("PhaseStandardDeviation"), 0.44420861263609, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("PhaseAverage"), 80.545942664067994, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("PhaseStandardDeviation"), 0.46899793230636, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("EmissionMinimum"), 10.798462835458, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("EmissionMaximum"), 13.502630463571, 0.001);
-    EXPECT_NEAR(camstats.findKeyword("EmissionAverage"), 12.15148695101, 0.001);
-    EXPECT_NEAR(camstats.findKeyword("EmissionStandardDeviation"), 0.56543791358689, 0.001);
+    EXPECT_NEAR(camstats.findKeyword("EmissionAverage"), 12.186927660806001, 0.001);
+    EXPECT_NEAR(camstats.findKeyword("EmissionStandardDeviation"), 0.5973363505175, 0.001);
     EXPECT_NEAR(camstats.findKeyword("IncidenceMinimum"), 69.941096124192, 0.001);
     EXPECT_NEAR(camstats.findKeyword("IncidenceMaximum"), 70.311944975377, 0.001);
-    EXPECT_NEAR(camstats.findKeyword("IncidenceAverage"), 70.127459134075, 0.001);
-    EXPECT_NEAR(camstats.findKeyword("IncidenceStandardDeviation"), 0.10249039125851, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("IncidenceAverage"), 70.123753834376998, 0.001);
+    EXPECT_NEAR(camstats.findKeyword("IncidenceStandardDeviation"), 0.10822316970111, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("LocalSolarTimeMinimum"), 7.7698055422189, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("LocalSolarTimeMaximum"), 7.8031735959943, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("LocalSolarTimeAverage"), 7.7863626216564, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("LocalSolarTimeStandardDeviation"), 0.0071055546198845, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("LocalRadiusMinimum"), 3410663.3374636, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("LocalRadiusMaximum"), 3413492.0662692, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("LocalRadiusAverage"), 3412205.8144925, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("LocalRadiusStandardDeviation"), 648.57630914361, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("LocalRadiusAverage"), 3412207.2092368999, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("LocalRadiusStandardDeviation"), 681.79264950524998, 0.001 );
     EXPECT_NEAR(camstats.findKeyword("NorthAzimuthMinimum"), 312.35223008738, 0.001);
-    EXPECT_NEAR(camstats.findKeyword("NorthAzimuthMaximum"), 350.57900431316, 0.001);
-    EXPECT_NEAR(camstats.findKeyword("NorthAzimuthAverage"), 332.96766151042, 0.001 );
-    EXPECT_NEAR(camstats.findKeyword("NorthAzimuthStandardDeviation"), 0.67037977027338, 0.001);
+    EXPECT_NEAR(camstats.findKeyword("NorthAzimuthMaximum"), 339.23662219463, 0.001);
+    EXPECT_NEAR(camstats.findKeyword("NorthAzimuthAverage"), 332.94062205616001, 0.001 );
+    EXPECT_NEAR(camstats.findKeyword("NorthAzimuthStandardDeviation"), 1.0376614201131, 0.001);
 
     EXPECT_TRUE(camobj.hasObject("IsisLabel"));
     EXPECT_TRUE(camobj.hasObject("Parameters"));
