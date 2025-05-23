@@ -305,6 +305,7 @@ find_package(Geos    3.5.0     REQUIRED)
 find_package(Armadillo         REQUIRED)
 find_package(Threads)
 find_package(inja              REQUIRED)
+find_package(Ceres             REQUIRED CONFIG)
 
 # Setup for googletest/googlemock before adding SensorUtilities so we build its tests
 if(buildTests)
@@ -379,7 +380,7 @@ foreach (_variableName ${_variableNames})
 endforeach()
 
 # add target based linkages to ALLLIBS variable
-list(APPEND ALLLIBS pantor::inja sensorutilities protobuf::libprotobuf embree GDAL::GDAL Bullet::Bullet_double CSPICE::cspice)
+list(APPEND ALLLIBS pantor::inja sensorutilities protobuf::libprotobuf embree GDAL::GDAL Bullet::Bullet_double CSPICE::cspice Ceres::ceres)
 
 list(APPEND ALLLIBS ${OpenCV_LIBS})
 list(APPEND ALLINCDIRS ${OpenCV_INCLUDE_DIRS})

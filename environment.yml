@@ -10,6 +10,7 @@ dependencies:
   - bullet >=3.25
   - bz2file
   - bzip2
+  - ceres-solver
   - cmake >=3.27,<3.28
   - cspice =67
   - csm >=3.0.3,<3.0.4
