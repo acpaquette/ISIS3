@@ -66,6 +66,7 @@ ctest FunctionalTestJigsawApollo to validate this output. [#5710](https://github
 - Changed `ControlMeasure` object comparison to no longer factor in creation date for equality [#5862](https://github.com/DOI-USGS/ISIS3/pull/5862)
 - Improved the Conda Bullet CMAKE configuration in FindBulletFloat64.cmake. Adds the Bullet::Bullet_double target to ALLLIBS. [#5899](https://github.com/DOI-USGS/ISIS3/issues/5899)
 - Changed 'jigsaw' attribute type to account for Linux compiler changes [#5904](https://github.com/DOI-USGS/ISIS3/pull/5904)
+- Updated cmake configs to accommodate new cspice release [#5886](https://github.com/DOI-USGS/ISIS3/pull/5886)
 
 ### Fixed
 - Fixed Chandrayaan-2 TMC2 serial numbers by setting InstrumentId to CH2_TMC_FORE/NADIR/AFT based on the filename sensor [#5871](https://github.com/DOI-USGS/ISIS3/issues/5871)
