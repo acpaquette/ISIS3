@@ -13,7 +13,7 @@ dependencies:
   - bz2file
   - bzip2
   - cmake >=3.27,<3.28
-  - cspice =67
+  - cspice =67=*_11
   - csm >=3.0.3,<3.0.4
   - curl >=8.4.0,<8.5
   - cxx-compiler=1.7
