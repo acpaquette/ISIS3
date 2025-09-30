@@ -55,7 +55,7 @@ requirements:
    - bz2file
    - bzip2
    - cmake >=3.27,<3.28
-   - cspice =67
+   - cspice =67=*_11
    - usgs-astrogeology::csm >=3.0.3,<3.0.4   # [osx and arm64]
    - csm >=3.0.3,<3.0.4                      # [not (osx and arm64)]
    - curl >=8.14.1,<9
@@ -107,7 +107,7 @@ requirements:
    - qhull
    - qt-main >=5.15,<5.16
    - qwt <6.3.0
-   - spiceql =1.2.0
+   - spiceql =1.2.0=*_1
    - sqlite >=3.46.0,<3.47
    - suitesparse <7.7.0
    - superlu
@@ -137,7 +137,7 @@ requirements:
   - bz2file
   - usgs-astrogeology::csm                        # [osx and arm64]
   - csm                                           # [not (osx and arm64)]
-  - cspice
+  - cspice=67=*_11
   - curl
   - eigen
   - {{ pin_compatible('embree', min_pin='x.x', max_pin='x.x') }}
