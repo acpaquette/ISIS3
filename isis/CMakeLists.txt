@@ -256,7 +256,7 @@ find_package(Qt5 COMPONENTS
                 Xml
                 XmlPatterns
                 # Search this path explicitly for MacOS OpenGL Framework
-                PATHS /System/Library/Frameworks/ REQUIRED)
+		PATHS /System/Library/Frameworks/ REQUIRED CONFIG)
 
 find_package(Boost 1.59.0 REQUIRED atomic
                                         log
@@ -356,6 +356,10 @@ foreach (_variableName ${_variableNames})
     list(APPEND ALLINCDIRS "${${_variableName}}")
   endif()
 endforeach()
+
+if (NOT OPENGL_XMESA_FOUND)
+	list(REMOVE_ITEM ALLINCDIRS OPENGL_xmesa_INCLUDE_DIR-NOTFOUND)
+endif()
 
 # get all Library variables
 foreach (_variableName ${_variableNames})
