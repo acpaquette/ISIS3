@@ -141,7 +141,7 @@ namespace Isis {
           bufferToFill.CopyOverlapFrom(boundedBrick);
         }
         else {
-          int bufferSize = bufferToFill.SampleDimensionScaled() * bufferToFill.LineDimensionScaled();;
+          int bufferSize = bufferToFill.SampleDimensionScaled() * bufferToFill.LineDimensionScaled();
           int currentBandIdx = bufferSize * (vband - bufferToFill.Band());
           // silence warnings
           char *buffersRawBuf = &(((char *)bufferToFill.RawBuffer())[(int)(currentBandIdx * SizeOf(bufferToFill.PixelType()))]);

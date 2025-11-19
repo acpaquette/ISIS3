@@ -528,6 +528,11 @@ namespace Isis {
       void discardChanges(CubeViewport *); //!< Emitted when changes should be discarded
       void screenPixelsChanged(); //!< Emitted when cube pixels that should be on the screen change
 
+
+      /**
+       * Emitted when the current progress has started (0)
+       */
+      void progressStart();
       /**
        * Emitted with current progress (0 to 100) when working
        */

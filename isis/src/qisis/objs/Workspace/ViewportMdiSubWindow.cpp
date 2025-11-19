@@ -25,6 +25,7 @@ namespace Isis {
     progressBar->setRange(0, 100);
     progressBar->setValue(0);
 
+    connect(m_viewport, SIGNAL(progressStart()), progressBar, SLOT(show()));
     connect(m_viewport, SIGNAL(progressChanged(int)),
             progressBar, SLOT(setValue(int)));
     connect(m_viewport, SIGNAL(progressComplete()), progressBar, SLOT(hide()));

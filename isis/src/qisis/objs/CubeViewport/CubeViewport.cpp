@@ -200,7 +200,7 @@ namespace Isis {
 
     p_pixmapPaintRects = new QList<QRect *>();
     p_progressTimer = new QTimer();
-    p_progressTimer->setInterval(250);
+    p_progressTimer->setInterval(25);
 
     p_knownStretches = new QVector< Stretch * >();
     p_globalStretches = new QVector< Stretch * >();
@@ -634,6 +634,7 @@ namespace Isis {
 
     // Notify other tools about the scale change
     emit scaleChanged();
+    emit progressStart();
 
     // Update the display
     setCaption();
