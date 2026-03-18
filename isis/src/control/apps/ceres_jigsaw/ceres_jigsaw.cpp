@@ -51,9 +51,9 @@ find files of those names at the top level of this repository. **/
 using json = nlohmann::json;
 
 #include <ceres/ceres.h>
-#include <ceres/numeric_diff_cost_function.h>
-#include <ceres/cost_function_to_functor.h>
-#include <ceres/autodiff_cost_function.h>
+#include <ceres/dynamic_autodiff_cost_function.h>
+#include <ceres/dynamic_numeric_diff_cost_function.h>
+#include <ceres/dynamic_cost_function_to_functor.h>
 
 #include "ceres_jigsaw.h"
 
@@ -65,69 +65,78 @@ namespace Isis {
   void ceresCheckImageList(SerialNumberList &heldSerialList, SerialNumberList &cubeSerialList);
   QList<BundleObservationSolveSettings> ceresObservationSolveSettings(UserInterface &ui);
 
-  // 9 potential position coefficients
-  // 9 potentail rotation coefficients
-  // This could change if the user changes the degree of
-  // the polynomail to represent rotations/positions
-  const int numParams = 9 + 9;
+  // // 9 potential position coefficients
+  // // 9 potentail rotation coefficients
+  // // This could change if the user changes the degree of
+  // // the polynomial to represent rotations/positions
+  // const int numParams = 9 + 9;
 
   BundleObservationSolveSettings::InstrumentPositionSolveOption solvePosition = BundleObservationSolveSettings::InstrumentPositionSolveOption::NoPositionFactors;
   BundleObservationSolveSettings::InstrumentPointingSolveOption solveRotation = BundleObservationSolveSettings::InstrumentPointingSolveOption::NoPointingFactors;
 
   struct SnavelyReprojectionFunctor {
-    SnavelyReprojectionFunctor(Camera *camera) : camera(camera) {
-      if (solvePosition != BundleObservationSolveSettings::InstrumentPositionSolveOption::NoPositionFactors) {
-        camera->instrumentPosition()->GetPolynomial(originalPositionPoly1,
-                                                    originalPositionPoly2,
-                                                    originalPositionPoly3);
-      }
-      if (solveRotation != BundleObservationSolveSettings::InstrumentPointingSolveOption::NoPointingFactors) {
-        camera->instrumentRotation()->GetPolynomial(originalPointingPoly1,
-                                                    originalPointingPoly2,
-                                                    originalPointingPoly3);
-      }
+    Camera *camera;
+    int positionParamSize;
+    int rotationParamSize;
+    
+    SnavelyReprojectionFunctor(Camera *camera, int positionParamSize, int rotationParamSize) : 
+                               camera(camera),  positionParamSize(positionParamSize), rotationParamSize(rotationParamSize) {
     }
 
-    bool operator()(const double* calibration, const double *point, double* predicted) const {
-      std::vector<double> poly1(3), poly2(3), poly3(3);
+    bool operator()(double const* const* parameters, double* residuals) const {
       if (solvePosition != BundleObservationSolveSettings::InstrumentPositionSolveOption::NoPositionFactors) {
+        std::vector<std::vector<double>> positionPolys(3, std::vector<double>(positionParamSize, 0.0));
         SpicePosition *instPosition = camera->instrumentPosition();
-        poly1 = originalPositionPoly1;
-        poly2 = originalPositionPoly2;
-        poly3 = originalPositionPoly3;
         // Based on solve settings we need to only update the correct coeffs
         // m_instrumentPositionSolveOption
         // NONE - no updates
-        // POSITIONS - 0th element in each polynomail
-        // VELOCITEIS - 0th and 1st elements in each polynomail
-        // ACCELERATIONS - 0th, 1st and 2nd elements in each polynomail
-        // ALL - 0th, 1st and 2nd elements in each polynomail
-        std::copy(&calibration[0], &(calibration[0 + (int)solvePosition]), poly1.begin());
-        std::copy(&calibration[3], &(calibration[3 + (int)solvePosition]), poly2.begin());
-        std::copy(&calibration[6], &(calibration[6 + (int)solvePosition]), poly3.begin());
-        instPosition->SetPolynomial(poly1, poly2, poly3);
+        // POSITIONS - 0th element in each polynomial
+        // VELOCITEIS - 0th and 1st elements in each polynomial
+        // ACCELERATIONS - 0th, 1st and 2nd elements in each polynomial
+        // ALL - 0th, 1st and 2nd elements in each polynomial
+        for (int j = 0; j < positionPolys.size(); j++) {
+          for (int k = 0; k < positionPolys[0].size(); k++) {
+            positionPolys[j][k] = parameters[k][j];
+          }
+        }
+
+        // for (int j = 0; j < positionPolys.size(); j++) {
+        //   for (int k = 0; k < positionPolys[0].size(); k++) {
+        //     std::cout << positionPolys[j][k] << ", ";
+        //   }
+        //   std::cout << std::endl;
+        // }
+        // std::cout << std::endl;
+        instPosition->SetPolynomial(positionPolys[0], positionPolys[1], positionPolys[2]);
       }
 
       if (solveRotation != BundleObservationSolveSettings::InstrumentPointingSolveOption::NoPointingFactors) {
+        std::vector<std::vector<double>> anglePolys(3, std::vector<double>(rotationParamSize, 0.0));
         SpiceRotation *instPointing = camera->instrumentRotation();
-        poly1 = originalPointingPoly1;
-        poly2 = originalPointingPoly2;
-        poly3 = originalPointingPoly3;
         // Based on solve settings we need to only update the correct coeffs
         // m_instrumentPointingSolveOption
         // NONE - no updates
-        // ANGLES - 0th element in each polynomail
-        // VELOCITEIS - 0th and 1st elements in each polynomail
-        // ACCELERATIONS - 0th, 1st and 2nd elements in each polynomail
-        // ALL - 0th, 1st and 2nd elements in each polynomail
-        std::copy(&calibration[9], &(calibration[9 + (int)solveRotation]), poly1.begin());
-        std::copy(&calibration[12], &(calibration[12 + (int)solveRotation]), poly2.begin());
-        std::copy(&calibration[15], &(calibration[15 + (int)solveRotation]), poly3.begin());
-        instPointing->SetPolynomial(poly1, poly2, poly3);
+        // ANGLES - 0th element in each polynomial
+        // VELOCITEIS - 0th and 1st elements in each polynomial
+        // ACCELERATIONS - 0th, 1st and 2nd elements in each polynomial
+        // ALL - 0th, 1st and 2nd elements in each polynomial
+        for (int j = 0; j < anglePolys.size(); j++) {
+          for (int k = 0; k < anglePolys[0].size(); k++) {
+            anglePolys[j][k] = parameters[k + positionParamSize][j];
+          }
+        }
+        // for (int j = 0; j < anglePolys.size(); j++) {
+        //   for (int k = 0; k < anglePolys[0].size(); k++) {
+        //     std::cout << anglePolys[j][k] << ", ";
+        //   }
+        //   std::cout << std::endl;
+        // }
+        // std::cout << std::endl;
+        instPointing->SetPolynomial(anglePolys[0], anglePolys[1], anglePolys[2]);
       }
-      Displacement x(point[0], Displacement::Units::Kilometers);
-      Displacement y(point[1], Displacement::Units::Kilometers);
-      Displacement z(point[2], Displacement::Units::Kilometers);
+      Displacement x(parameters[6][0], Displacement::Units::Kilometers);
+      Displacement y(parameters[6][1], Displacement::Units::Kilometers);
+      Displacement z(parameters[6][2], Displacement::Units::Kilometers);
 
       SurfacePoint surfacePoint(x, y, z);
       if (!camera->SetGround(surfacePoint)) {
@@ -135,32 +144,36 @@ namespace Isis {
         return false;
       }
 
-      predicted[0] = camera->Sample();
-      predicted[1] = camera->Line();
+      residuals[0] = camera->Sample();
+      residuals[1] = camera->Line();
 
       return true;
     }
-
-    Camera *camera;
-    std::vector<double> originalPositionPoly1, originalPositionPoly2, originalPositionPoly3;
-    std::vector<double> originalPointingPoly1, originalPointingPoly2, originalPointingPoly3;
   };
 
 
-  struct SnavelyReprojectionError {
-    SnavelyReprojectionError(double observed_x, double observed_y, Camera *camera)
+  struct SnavelyReprojectionErrorFunctor {
+    SnavelyReprojectionErrorFunctor(double observed_x, double observed_y, Camera *camera, int positionParamSize, int rotationParamSize)
         : observed_x(observed_x), observed_y(observed_y) {
 
-      ceres::CostFunction *cost_function = new ceres::NumericDiffCostFunction<SnavelyReprojectionFunctor, ceres::CENTRAL, 2, numParams, 3>
-            (new SnavelyReprojectionFunctor(camera));
+      auto *cost_function = new ceres::DynamicNumericDiffCostFunction<SnavelyReprojectionFunctor, ceres::CENTRAL>
+            (new SnavelyReprojectionFunctor(camera, positionParamSize, rotationParamSize));
+      cost_function->AddParameterBlock(positionParamSize);
+      cost_function->AddParameterBlock(positionParamSize);
+      cost_function->AddParameterBlock(positionParamSize);
+      cost_function->AddParameterBlock(rotationParamSize);
+      cost_function->AddParameterBlock(rotationParamSize);
+      cost_function->AddParameterBlock(rotationParamSize);
+      cost_function->AddParameterBlock(3);
+      cost_function->SetNumResiduals(2);
 
-      compute_point = std::make_unique<ceres::CostFunctionToFunctor<2, numParams, 3>>(cost_function);
+      compute_point = std::make_unique<ceres::DynamicCostFunctionToFunctor>(cost_function);
     }
 
     template <typename T>
-    bool operator()(const T* calibration, const T *point, T* residuals) const {
+    bool operator()(T const* const* parameters, T* residuals) const {
       T predicted[2];
-      (*compute_point)(calibration, point, predicted);
+      (*compute_point)(parameters, predicted);
       residuals[0] = observed_x - predicted[0];
       residuals[1] = observed_y - predicted[1];
       return true;
@@ -168,16 +181,37 @@ namespace Isis {
 
     // Factory to hide the construction of the CostFunction object from
     // the client code.
-    static ceres::CostFunction* Create(const double observed_x,
-                                       const double observed_y,
-                                       Camera *camera) {
-      return new ceres::AutoDiffCostFunction<SnavelyReprojectionError, 2, numParams, 3>
-        (new SnavelyReprojectionError(observed_x, observed_y, camera));
+    static auto* Create(const double observed_x,
+                        const double observed_y,
+                        Camera *camera,
+                        int positionParamSize,
+                        int rotationParamSize) {
+      return new ceres::DynamicNumericDiffCostFunction<SnavelyReprojectionErrorFunctor, 4>(new SnavelyReprojectionErrorFunctor(observed_x, observed_y, camera, positionParamSize, rotationParamSize));
     }
 
     double observed_x;
     double observed_y;
-    std::unique_ptr<ceres::CostFunctionToFunctor<2, numParams, 3>> compute_point;
+    std::unique_ptr<ceres::DynamicCostFunctionToFunctor> compute_point;
+  };
+
+  struct PointParameters {
+    std::vector<double *> parameters;
+
+    PointParameters () {}
+
+    PointParameters(double *polynomials, double *groundPt, int rotationSize, int positionSize) {
+      parameters.resize(rotationSize + positionSize + 1);
+      for (int i = 0; i < positionSize; i++) {
+        parameters[i] = &polynomials[i * 3];
+      }
+
+      int positionOffset = 3 * positionSize;
+      for (int i = 0; i < rotationSize; i++) {
+        parameters[i + positionSize] = &polynomials[positionOffset + (i * 3)];
+      }
+
+      parameters[positionSize + rotationSize] = groundPt;
+    }
   };
 
   void ceres_jigsaw(UserInterface &ui, Pvl *log) {
@@ -188,8 +222,12 @@ namespace Isis {
     BundleObservationSolveSettings solveSettings = settings->observationSolveSettings(0);
     solvePosition = solveSettings.instrumentPositionSolveOption();
     solveRotation = solveSettings.instrumentPointingSolveOption();
-
-    BundleObservationSolveSettings::InstrumentPointingSolveOption pointingSolveOption = BundleObservationSolveSettings::stringToInstrumentPointingSolveOption(ui.GetString("CAMSOLVE"));
+  
+    int positionParamSize = solveSettings.spkSolveDegree() + 1;
+    int rotationParamSize = solveSettings.ckSolveDegree() + 1;
+    std::cout << rotationParamSize << ", " << positionParamSize << std::endl;
+    int numParams = rotationParamSize * 3 + positionParamSize * 3;
+    std::cout << numParams << std::endl;
 
     ControlNet network(ui.GetFileName("CNET"));
     SerialNumberList snList(ui.GetFileName("FROMLIST"));
@@ -198,6 +236,7 @@ namespace Isis {
     std::map<QString, double *> originalPolyMap;
     for (int i = 0; i < snList.size(); i++) {
       QString serialNumber = snList.serialNumber(i);
+      std::cout << serialNumber << std::endl;
       double *cameraPolynomials = new double[numParams];
       double *originalCameraPolynomials = new double[numParams];
       for (int j = 0; j < numParams; j++) {
@@ -217,14 +256,14 @@ namespace Isis {
 
         // finally, set the degree of the position polynomial actually used in the bundle adjustment
         spicePosition->SetPolynomialDegree(solveSettings.spkSolveDegree());
-        std::vector<double> positionPoly1, positionPoly2, positionPoly3;
-        spicePosition->GetPolynomial(positionPoly1, positionPoly2, positionPoly3);
-        copy(positionPoly1.begin(), positionPoly1.end(), &cameraPolynomials[0]);
-        copy(positionPoly2.begin(), positionPoly2.end(), &cameraPolynomials[3]);
-        copy(positionPoly3.begin(), positionPoly3.end(), &cameraPolynomials[6]);
-        copy(positionPoly1.begin(), positionPoly1.end(), &originalCameraPolynomials[0]);
-        copy(positionPoly2.begin(), positionPoly2.end(), &originalCameraPolynomials[3]);
-        copy(positionPoly3.begin(), positionPoly3.end(), &originalCameraPolynomials[6]);
+        std::vector<std::vector<double>> positionPolys(3, std::vector<double>(positionParamSize, 0.0));
+        spicePosition->GetPolynomial(positionPolys[0], positionPolys[1], positionPolys[2]);
+        for (int j = 0; j < positionPolys.size(); j++) {
+          for (int k = 0; k < positionPolys[j].size(); k++) {
+            cameraPolynomials[(k * positionPolys.size() + j)] = positionPolys[j][k];
+            originalCameraPolynomials[(k * positionPolys.size() + j)] = positionPolys[j][k];
+          }
+        }
       }
 
       if (solveRotation != BundleObservationSolveSettings::InstrumentPointingSolveOption::NoPointingFactors) {
@@ -239,24 +278,29 @@ namespace Isis {
 
         // finally, set the degree of the pointing polynomial actually used in the bundle adjustment
         spiceRotation->SetPolynomialDegree(solveSettings.ckSolveDegree());
-        std::vector<double> anglePoly1, anglePoly2, anglePoly3;
-        spiceRotation->GetPolynomial(anglePoly1, anglePoly2, anglePoly3);
-        copy(anglePoly1.begin(), anglePoly1.end(), &cameraPolynomials[9]);
-        copy(anglePoly2.begin(), anglePoly2.end(), &cameraPolynomials[12]);
-        copy(anglePoly3.begin(), anglePoly3.end(), &cameraPolynomials[15]);
-        copy(anglePoly1.begin(), anglePoly1.end(), &originalCameraPolynomials[9]);
-        copy(anglePoly2.begin(), anglePoly2.end(), &originalCameraPolynomials[12]);
-        copy(anglePoly3.begin(), anglePoly3.end(), &originalCameraPolynomials[15]);
+        std::vector<std::vector<double>> anglePolys(3, std::vector<double>(rotationParamSize, 0.0));
+        spiceRotation->GetPolynomial(anglePolys[0], anglePolys[1], anglePolys[2]);
+        int positionOffset = 3 * positionParamSize;
+        for (int j = 0; j < anglePolys.size(); j++) {
+          for (int k = 0; k < anglePolys[j].size(); k++) {
+            cameraPolynomials[positionOffset + (k * anglePolys.size() + j)] = anglePolys[j][k];
+            originalCameraPolynomials[positionOffset + (k * anglePolys.size() + j)] = anglePolys[j][k];
+          }
+        }
       }
+
+      for (int j = 0; j < numParams; j++) {
+        std::cout << cameraPolynomials[j] << std::endl;
+      }
+      std::cout << std::endl;
       polyMap[serialNumber] = cameraPolynomials;
       originalPolyMap[serialNumber] = originalCameraPolynomials;
     }
     // Convert to pointer of similar data
     // That is, each entry should point to some cameras set of
     // polys rather than making a duplicate entry
-    double **polynomials = new double*[network.GetNumValidMeasures()];
+    std::vector<PointParameters> bundleParameters(network.GetNumValidMeasures());
     double **observedPoints = new double*[network.GetNumValidMeasures()];
-    double **groundPoints = new double*[network.GetNumValidMeasures()];
     for (int i = 0; i < network.GetNumValidMeasures(); i++) {
       observedPoints[i] = new double[2];
       for (int j = 0; j < 2; j++) {
@@ -288,31 +332,62 @@ namespace Isis {
 
         QString serialNumber = measure->GetCubeSerialNumber();
         cameras[vector_idx] = network.Camera(serialNumber);
-        polynomials[vector_idx] = polyMap[serialNumber];
-        groundPoints[vector_idx] = groundCoord;
+        // Copy data to spots in pointParameters
+        bundleParameters[vector_idx] = PointParameters(polyMap[serialNumber], groundCoord, rotationParamSize, positionParamSize);
         vector_idx++;
       }
     }
     std::cout << std::setprecision(15);
     for ( int i = 0; i < 10; i++) {
       std::cout << "INITIAL GP: ";
-      std::cout << groundPoints[i][0] << ", ";
-      std::cout << groundPoints[i][1] << ", ";
-      std::cout << groundPoints[i][2] << std::endl;
+      std::cout << bundleParameters[i].parameters[rotationParamSize + positionParamSize][0] << ", ";
+      std::cout << bundleParameters[i].parameters[rotationParamSize + positionParamSize][1] << ", ";
+      std::cout << bundleParameters[i].parameters[rotationParamSize + positionParamSize][2] << std::endl;
     }
+
+    int numRotationParams = (int)solveRotation;
+    int numPositionParams = (int)solvePosition;
 
     ceres::LossFunction* loss_function = new ceres::HuberLoss(1.0);
     ceres::Problem problem;
+    // network.GetNumValidMeasures()
     for (int i = 0; i < network.GetNumValidMeasures(); ++i) {
-      ceres::CostFunction* cost_function =
-          SnavelyReprojectionError::Create(observedPoints[i][0],
-                                           observedPoints[i][1],
-                                           cameras[i]);
+      auto* cost_function =
+          SnavelyReprojectionErrorFunctor::Create(observedPoints[i][0],
+                                                  observedPoints[i][1],
+                                                  cameras[i],
+                                                  positionParamSize,
+                                                  rotationParamSize);
+      for (int j = 0; j < positionParamSize; j++) {
+        cost_function->AddParameterBlock(3);
+      }
+      for (int j = 0; j < rotationParamSize; j++) {
+        cost_function->AddParameterBlock(3);
+      }
+      cost_function->AddParameterBlock(3);
+      cost_function->SetNumResiduals(2);
       problem.AddResidualBlock(cost_function,
-                              //  nullptr /* squared loss */,
                                loss_function,
-                               polynomials[i],
-                               groundPoints[i]);
+                               bundleParameters[i].parameters);
+      if (solvePosition < BundleObservationSolveSettings::InstrumentPositionSolveOption::PositionVelocityAcceleration) {
+        problem.SetParameterBlockConstant(bundleParameters[i].parameters[2]);
+        if (solvePosition < BundleObservationSolveSettings::InstrumentPositionSolveOption::PositionVelocity) {
+          problem.SetParameterBlockConstant(bundleParameters[i].parameters[1]);
+          if (solvePosition < BundleObservationSolveSettings::InstrumentPositionSolveOption::PositionOnly) {
+            problem.SetParameterBlockConstant(bundleParameters[i].parameters[0]);
+          }
+        }
+      }
+
+      if (solveRotation < BundleObservationSolveSettings::InstrumentPointingSolveOption::AnglesVelocityAcceleration) {
+        problem.SetParameterBlockConstant(bundleParameters[i].parameters[5]);
+        if (solveRotation < BundleObservationSolveSettings::InstrumentPointingSolveOption::AnglesVelocity) {
+          problem.SetParameterBlockConstant(bundleParameters[i].parameters[4]);
+          if (solveRotation < BundleObservationSolveSettings::InstrumentPointingSolveOption::AnglesOnly) {
+            problem.SetParameterBlockConstant(bundleParameters[i].parameters[3]);
+          }
+        }
+      }
     }
 
     ceres::Solver::Options options;
@@ -325,9 +400,9 @@ namespace Isis {
     std::cout << summary.FullReport() << "\n";
     for ( int i = 0; i < 10; i++) {
       std::cout << "POST GP: ";
-      std::cout << groundPoints[i][0] << ", ";
-      std::cout << groundPoints[i][1] << ", ";
-      std::cout << groundPoints[i][2] << std::endl;
+      std::cout << bundleParameters[i].parameters[rotationParamSize + positionParamSize][0] << ", ";
+      std::cout << bundleParameters[i].parameters[rotationParamSize + positionParamSize][1] << ", ";
+      std::cout << bundleParameters[i].parameters[rotationParamSize + positionParamSize][2] << std::endl;
     }
     for (int i = 0; i < snList.size(); i++) {
       QString serialNumber = snList.serialNumber(i);
@@ -393,22 +468,29 @@ namespace Isis {
         // Write bundle adjustment values to cube
         Camera *camera = cube->camera();
         if (solvePosition != BundleObservationSolveSettings::InstrumentPositionSolveOption::NoPositionFactors) {
-          std::vector<double> positionPoly1(3), positionPoly2(3), positionPoly3(3);
-          copy(&updatedCameraPolynomials[0], &updatedCameraPolynomials[0 + 3], positionPoly1.begin());
-          copy(&updatedCameraPolynomials[3], &updatedCameraPolynomials[3 + 3], positionPoly2.begin());
-          copy(&updatedCameraPolynomials[6], &updatedCameraPolynomials[6 + 3], positionPoly3.begin());
-          camera->instrumentPosition()->SetPolynomial(positionPoly1, positionPoly2, positionPoly3);
+          std::vector<std::vector<double>> positionPolys(positionParamSize, std::vector<double>(positionParamSize, 0.0));
+          for (int j = 0; j < positionPolys[0].size(); j++) {
+            for (int k = 0; k < positionPolys.size(); k++) {
+              positionPolys[k][j] = updatedCameraPolynomials[(j * positionParamSize) + k];
+            }
+          }
+          camera->instrumentPosition()->SetPolynomialDegree(solveSettings.spkSolveDegree());
+          camera->instrumentPosition()->SetPolynomial(positionPolys[0], positionPolys[1], positionPolys[2]);
           Table spvector = camera->instrumentPosition()->Cache("InstrumentPosition");
           spvector.Label().addComment(jigComment);
           cube->write(spvector);
         }
 
         if (solveRotation != BundleObservationSolveSettings::InstrumentPointingSolveOption::NoPointingFactors) {
-          std::vector<double> anglePoly1(3), anglePoly2(3), anglePoly3(3);
-          copy(&updatedCameraPolynomials[9], &updatedCameraPolynomials[9 + 3], anglePoly1.begin());
-          copy(&updatedCameraPolynomials[12], &updatedCameraPolynomials[12 + 3], anglePoly2.begin());
-          copy(&updatedCameraPolynomials[15], &updatedCameraPolynomials[15 + 3], anglePoly3.begin());
-          camera->instrumentRotation()->SetPolynomial(anglePoly1, anglePoly2, anglePoly3);
+          std::vector<std::vector<double>> anglePolys(positionParamSize, std::vector<double>(positionParamSize, 0.0));
+          int positionOffset = 3 * positionParamSize;
+          for (int j = 0; j < anglePolys[0].size(); j++) {
+            for (int k = 0; k < anglePolys.size(); k++) {
+              anglePolys[k][j] = updatedCameraPolynomials[(positionOffset + j * rotationParamSize) + k];
+            }
+          }
+          camera->instrumentRotation()->SetPolynomialDegree(solveSettings.ckSolveDegree());
+          camera->instrumentRotation()->SetPolynomial(anglePolys[0], anglePolys[1], anglePolys[2]);
           Table cmatrix = camera->instrumentRotation()->Cache("InstrumentPointing");
           cmatrix.Label().addComment(jigComment);
           cube->write(cmatrix);
@@ -436,7 +518,7 @@ namespace Isis {
       if (point->IsIgnored()) {
         continue;
       }
-      delete []groundPoints[groundPointIdx];
+      delete []bundleParameters[groundPointIdx].parameters[rotationParamSize + positionParamSize];
       for (int j = 0; j < point->GetNumMeasures(); j++) {
         ControlMeasure *measure = point->GetMeasure(j);
         if (measure->IsIgnored()) {
@@ -446,10 +528,7 @@ namespace Isis {
       }
     }
 
-    delete []polynomials;
     delete []observedPoints;
-    delete []groundPoints;
-    delete []measureSampleLine;
   }
 
   BundleSettingsQsp ceresBundleSettings(UserInterface &ui) {

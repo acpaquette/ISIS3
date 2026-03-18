@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<application name="jigsaw" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://isis.astrogeology.usgs.gov/Schemas/Application/application.xsd">
+<application name="ceres_jigsaw" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://isis.astrogeology.usgs.gov/Schemas/Application/application.xsd">
   <brief>
     Improves image alignment by updating camera geometry attached to cubes.
   </brief>
@@ -1260,8 +1260,8 @@
               selected. Solving for angles only is equivalent to using CKSOLVEDEGREE=0.
             </description>
             <exclusions>
-              <item>CKDEGREE</item>
-              <item>CKSOLVEDEGREE</item>
+              <!-- <item>CKDEGREE</item> -->
+              <!-- <item>CKSOLVEDEGREE</item> -->
             </exclusions>
           </option>
 
@@ -1273,8 +1273,8 @@
               CKSOLVEDEGREE=1.
             </description>
             <exclusions>
-              <item>CKDEGREE</item>
-              <item>CKSOLVEDEGREE</item>
+              <!-- <item>CKDEGREE</item> -->
+              <!-- <item>CKSOLVEDEGREE</item> -->
             </exclusions>
           </option>
 
@@ -1286,8 +1286,8 @@
               accelerations is equivalent to using CKSOLVEDEGREE=2.
             </description>
             <exclusions>
-              <item>CKDEGREE</item>
-              <item>CKSOLVEDEGREE</item>
+              <!-- <item>CKDEGREE</item> -->
+              <!-- <item>CKSOLVEDEGREE</item> -->
             </exclusions>
           </option>
 
