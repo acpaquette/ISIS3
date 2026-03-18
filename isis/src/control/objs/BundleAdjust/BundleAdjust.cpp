@@ -592,11 +592,11 @@ namespace Isis {
 
           measure->setParentObservation(observation);
           measure->setParentImage(image);
-        measure->setSigma(1.4);
+          measure->setSigma(1.4);
         }
 
-      point->ComputeApriori();
-    }
+        point->ComputeApriori();
+      }
 
     // set up vector of BundleLidarControlPoints
     int numLidarPoints = 0;

@@ -472,7 +472,7 @@ namespace Isis {
   }
 
   BundleSettingsQsp bundleSettings(UserInterface &ui) {
-  //  BundleSettings settings;
+    //  BundleSettings settings;
     BundleSettingsQsp settings = BundleSettingsQsp(new BundleSettings);
 
     settings->setValidateNetwork(true);

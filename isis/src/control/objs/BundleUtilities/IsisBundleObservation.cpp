@@ -465,9 +465,9 @@ namespace Isis {
           throw IException(IException::Unknown, msg, _FILEINFO_);
         }
 
-        std::vector<double> coefRA(nCameraPositionCoefficients);
-        std::vector<double> coefDEC(nCameraPositionCoefficients);
-        std::vector<double> coefTWI(nCameraPositionCoefficients);
+        std::vector<double> coefRA(nCameraAngleCoefficients);
+        std::vector<double> coefDEC(nCameraAngleCoefficients);
+        std::vector<double> coefTWI(nCameraAngleCoefficients);
 
         m_instrumentRotation->GetPolynomial(coefRA, coefDEC, coefTWI);
 
