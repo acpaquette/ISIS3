@@ -621,8 +621,9 @@ namespace Isis {
 
     // list table of quaternion and time
 
-    std::vector<ale::Rotation> rotationCache;
+    std::vector<ale::Rotation> rotationCache(table.Records());
     std::vector<ale::Vec3d> avCache;
+    p_cacheTime.resize(table.Records());
     if (recFields == 5) {
       for (int r = 0; r < table.Records(); r++) {
         TableRecord &rec = table[r];
@@ -656,6 +657,7 @@ namespace Isis {
 
     // list table of quaternion, angular velocity vector, and time
     else if (recFields == 8) {
+      avCache.resize(table.Records());
       for (int r = 0; r < table.Records(); r++) {
         TableRecord &rec = table[r];
 
@@ -747,7 +749,7 @@ namespace Isis {
     std::vector<ale::Rotation> rotationCache;
     std::vector<ale::Vec3d> avCache;
     if (p_source == PolyFunction) {
-    // Clear existing matrices from cache
+      // Clear existing matrices from cache
       p_cacheTime.clear();
 
       // Load the time cache first
@@ -867,7 +869,7 @@ namespace Isis {
    * @return @b Table Table with given name that contains the cached pointing
    */
   Table SpiceRotation::Cache(const QString &tableName) {
-   // First handle conversion of PolyFunctionOverSpiceConstant
+    // First handle conversion of PolyFunctionOverSpiceConstant
     // by converting it to the full Memcache and try to downsize it
     if (p_source == PolyFunctionOverSpice) {
       LineCache(tableName);
@@ -1817,7 +1819,7 @@ namespace Isis {
       double slope[3];
       double intercept[3];
 
-// Compute the linear equation for each angle and save them
+      // Compute the linear equation for each angle and save them
       for (int angleIndex = 0; angleIndex < 3; angleIndex++) {
         Isis::LineEquation angline(t1, angles1[angleIndex], t2, angles2[angleIndex]);
         slope[angleIndex] = angline.Slope();
@@ -1841,7 +1843,7 @@ namespace Isis {
         SetEphemerisTime(t);
         std::vector<double> angles = Angles(p_axis3, p_axis2, p_axis1);
 
-// Fix 180/-180 crossovers on angles 1 and 3 before doing fit.
+        // Fix 180/-180 crossovers on angles 1 and 3 before doing fit.
         if (pos == 0) {
           start1 = angles[0];
           start3 = angles[2];
