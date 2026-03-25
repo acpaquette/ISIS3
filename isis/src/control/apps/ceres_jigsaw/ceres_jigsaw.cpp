@@ -28,11 +28,14 @@ find files of those names at the top level of this repository. **/
 #include "BundleResults.h"
 #include "BundleSettings.h"
 #include "BundleSolutionInfo.h"
+#include "CameraFactory.h"
 #include "ControlMeasure.h"
 #include "ControlNet.h"
 #include "ControlPoint.h"
 #include "CubeAttribute.h"
 #include "Displacement.h"
+#include "ReprojectionCostFuncs.h"
+#include "GroundCoordCostFuncs.h"
 #include "IException.h"
 #include "iTime.h"
 #include "MaximumLikelihoodWFunctions.h"
@@ -41,7 +44,6 @@ find files of those names at the top level of this repository. **/
 #include "SerialNumber.h"
 #include "SerialNumberList.h"
 #include "Table.h"
-#include "CameraFactory.h"
 #include "PvlToJSON.h"
 #include "PvlKeyword.h"
 
@@ -49,11 +51,6 @@ find files of those names at the top level of this repository. **/
 #include <nlohmann/json.hpp>
 #include <boost/filesystem.hpp>
 using json = nlohmann::json;
-
-#include <ceres/ceres.h>
-#include <ceres/dynamic_autodiff_cost_function.h>
-#include <ceres/dynamic_numeric_diff_cost_function.h>
-#include <ceres/dynamic_cost_function_to_functor.h>
 
 #include "ceres_jigsaw.h"
 
@@ -70,129 +67,6 @@ namespace Isis {
   // // This could change if the user changes the degree of
   // // the polynomial to represent rotations/positions
   // const int numParams = 9 + 9;
-
-  BundleObservationSolveSettings::InstrumentPositionSolveOption solvePosition = BundleObservationSolveSettings::InstrumentPositionSolveOption::NoPositionFactors;
-  BundleObservationSolveSettings::InstrumentPointingSolveOption solveRotation = BundleObservationSolveSettings::InstrumentPointingSolveOption::NoPointingFactors;
-
-  struct SnavelyReprojectionFunctor {
-    Camera *camera;
-    int positionParamSize;
-    int rotationParamSize;
-    
-    SnavelyReprojectionFunctor(Camera *camera, int positionParamSize, int rotationParamSize) : 
-                               camera(camera),  positionParamSize(positionParamSize), rotationParamSize(rotationParamSize) {
-    }
-
-    bool operator()(double const* const* parameters, double* residuals) const {
-      if (solvePosition != BundleObservationSolveSettings::InstrumentPositionSolveOption::NoPositionFactors) {
-        std::vector<std::vector<double>> positionPolys(3, std::vector<double>(positionParamSize, 0.0));
-        SpicePosition *instPosition = camera->instrumentPosition();
-        // Based on solve settings we need to only update the correct coeffs
-        // m_instrumentPositionSolveOption
-        // NONE - no updates
-        // POSITIONS - 0th element in each polynomial
-        // VELOCITEIS - 0th and 1st elements in each polynomial
-        // ACCELERATIONS - 0th, 1st and 2nd elements in each polynomial
-        // ALL - 0th, 1st and 2nd elements in each polynomial
-        for (int j = 0; j < positionPolys.size(); j++) {
-          for (int k = 0; k < positionPolys[0].size(); k++) {
-            positionPolys[j][k] = parameters[k][j];
-          }
-        }
-
-        // for (int j = 0; j < positionPolys.size(); j++) {
-        //   for (int k = 0; k < positionPolys[0].size(); k++) {
-        //     std::cout << positionPolys[j][k] << ", ";
-        //   }
-        //   std::cout << std::endl;
-        // }
-        // std::cout << std::endl;
-        instPosition->SetPolynomial(positionPolys[0], positionPolys[1], positionPolys[2]);
-      }
-
-      if (solveRotation != BundleObservationSolveSettings::InstrumentPointingSolveOption::NoPointingFactors) {
-        std::vector<std::vector<double>> anglePolys(3, std::vector<double>(rotationParamSize, 0.0));
-        SpiceRotation *instPointing = camera->instrumentRotation();
-        // Based on solve settings we need to only update the correct coeffs
-        // m_instrumentPointingSolveOption
-        // NONE - no updates
-        // ANGLES - 0th element in each polynomial
-        // VELOCITEIS - 0th and 1st elements in each polynomial
-        // ACCELERATIONS - 0th, 1st and 2nd elements in each polynomial
-        // ALL - 0th, 1st and 2nd elements in each polynomial
-        for (int j = 0; j < anglePolys.size(); j++) {
-          for (int k = 0; k < anglePolys[0].size(); k++) {
-            anglePolys[j][k] = parameters[k + positionParamSize][j];
-          }
-        }
-        // for (int j = 0; j < anglePolys.size(); j++) {
-        //   for (int k = 0; k < anglePolys[0].size(); k++) {
-        //     std::cout << anglePolys[j][k] << ", ";
-        //   }
-        //   std::cout << std::endl;
-        // }
-        // std::cout << std::endl;
-        instPointing->SetPolynomial(anglePolys[0], anglePolys[1], anglePolys[2]);
-      }
-      Displacement x(parameters[6][0], Displacement::Units::Kilometers);
-      Displacement y(parameters[6][1], Displacement::Units::Kilometers);
-      Displacement z(parameters[6][2], Displacement::Units::Kilometers);
-
-      SurfacePoint surfacePoint(x, y, z);
-      if (!camera->SetGround(surfacePoint)) {
-        // Return false if point is not visible
-        return false;
-      }
-
-      residuals[0] = camera->Sample();
-      residuals[1] = camera->Line();
-
-      return true;
-    }
-  };
-
-
-  struct SnavelyReprojectionErrorFunctor {
-    SnavelyReprojectionErrorFunctor(double observed_x, double observed_y, Camera *camera, int positionParamSize, int rotationParamSize)
-        : observed_x(observed_x), observed_y(observed_y) {
-
-      auto *cost_function = new ceres::DynamicNumericDiffCostFunction<SnavelyReprojectionFunctor, ceres::CENTRAL>
-            (new SnavelyReprojectionFunctor(camera, positionParamSize, rotationParamSize));
-      cost_function->AddParameterBlock(positionParamSize);
-      cost_function->AddParameterBlock(positionParamSize);
-      cost_function->AddParameterBlock(positionParamSize);
-      cost_function->AddParameterBlock(rotationParamSize);
-      cost_function->AddParameterBlock(rotationParamSize);
-      cost_function->AddParameterBlock(rotationParamSize);
-      cost_function->AddParameterBlock(3);
-      cost_function->SetNumResiduals(2);
-
-      compute_point = std::make_unique<ceres::DynamicCostFunctionToFunctor>(cost_function);
-    }
-
-    template <typename T>
-    bool operator()(T const* const* parameters, T* residuals) const {
-      T predicted[2];
-      (*compute_point)(parameters, predicted);
-      residuals[0] = observed_x - predicted[0];
-      residuals[1] = observed_y - predicted[1];
-      return true;
-    }
-
-    // Factory to hide the construction of the CostFunction object from
-    // the client code.
-    static auto* Create(const double observed_x,
-                        const double observed_y,
-                        Camera *camera,
-                        int positionParamSize,
-                        int rotationParamSize) {
-      return new ceres::DynamicNumericDiffCostFunction<SnavelyReprojectionErrorFunctor, 4>(new SnavelyReprojectionErrorFunctor(observed_x, observed_y, camera, positionParamSize, rotationParamSize));
-    }
-
-    double observed_x;
-    double observed_y;
-    std::unique_ptr<ceres::DynamicCostFunctionToFunctor> compute_point;
-  };
 
   struct PointParameters {
     std::vector<double *> parameters;
@@ -220,6 +94,8 @@ namespace Isis {
 
     // initialize solution parameters
     BundleObservationSolveSettings solveSettings = settings->observationSolveSettings(0);
+    BundleObservationSolveSettings::InstrumentPositionSolveOption solvePosition = BundleObservationSolveSettings::InstrumentPositionSolveOption::NoPositionFactors;
+    BundleObservationSolveSettings::InstrumentPointingSolveOption solveRotation = BundleObservationSolveSettings::InstrumentPointingSolveOption::NoPointingFactors;
     solvePosition = solveSettings.instrumentPositionSolveOption();
     solveRotation = solveSettings.instrumentPointingSolveOption();
   
@@ -357,7 +233,8 @@ namespace Isis {
                                                   observedPoints[i][1],
                                                   cameras[i],
                                                   positionParamSize,
-                                                  rotationParamSize);
+                                                  rotationParamSize,
+                                                  solveSettings);
       for (int j = 0; j < positionParamSize; j++) {
         cost_function->AddParameterBlock(3);
       }
