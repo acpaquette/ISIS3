@@ -658,6 +658,10 @@ namespace Isis {
 
     if (lineRate == 0.0) return Failure;
 
+    // The cube's SPICE time range. The secant must stay inside this.
+    const double cacheStart = p_camera->Spice::cacheStartTime().Et();
+    const double cacheEnd = p_camera->Spice::cacheEndTime().Et();
+
     LineOffsetFunctor offsetFunc(p_camera,surfacePoint);
     SensorSurfacePointDistanceFunctor distanceFunc(p_camera,surfacePoint);
 
@@ -687,6 +691,7 @@ namespace Isis {
     for (int j=0; j < 10; j++) {
 
       if (fabs(f1) < 1e-6 || ((f1 - f0) == 0.0)) {
+        if (x1 < cacheStart || x1 > cacheEnd) return Failure;
         p_camera->Sensor::setTime(x1);
         // check to make sure the point isn't behind the planet
         if (!p_camera->Sensor::SetGround(surfacePoint, true)) {
