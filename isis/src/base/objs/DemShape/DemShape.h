@@ -13,7 +13,7 @@ namespace Isis {
   class Cube;
   class Interpolator;
   class Portal;
-  class Projection;
+  class TProjection;
 
   /**
    * @brief Define shapes and provide utilities for targets stored as ISIS maps
@@ -80,7 +80,7 @@ namespace Isis {
       // example, or use its GetLocalNormal method.
 
       // Calculate the surface normal of the current intersection point
-     void calculateLocalNormal(QVector<double *> cornerNeighborPoints);
+     void calculateLocalNormal();
 
     protected:
       Cube *demCube();         //!< Returns the cube defining the shape model.
@@ -102,8 +102,9 @@ namespace Isis {
       double findDemValue();
       
       Cube *m_demCube;        //!< The cube containing the model
-      Projection *m_demProj;  //!< The projection of the model
+      TProjection *m_demProj;  //!< The projection of the model
       double m_pixPerDegree;  //!< Scale of DEM file in pixels per degree
+      double m_metersPerPix;
       Portal *m_portal;       //!< Buffer used to read from the model
       Interpolator *m_interp; //!< Use bilinear interpolation from dem
       double m_demValue;      //!< A value picked from the dem

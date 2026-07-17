@@ -35,7 +35,7 @@ find files of those names at the top level of this repository. **/
 #include "Longitude.h"
 #include "NaifStatus.h"
 #include "Portal.h"
-#include "Projection.h"
+#include "TProjection.h"
 #include "Pvl.h"
 #include "Spice.h"
 #include "SurfacePoint.h"
@@ -98,7 +98,7 @@ namespace Isis {
     //   from iteration 1 of setlookdirection (first algorithm) at iteration
     //   4 and the next setimage has to re-read the data.
     m_demCube->addCachingAlgorithm(new UniqueIOCachingAlgorithm(5));
-    m_demProj = m_demCube->projection();
+    m_demProj = (TProjection *) m_demCube->projection();
     m_interp = new Interpolator(Interpolator::BiLinearType);
     m_portal = new Portal(m_interp->Samples(), m_interp->Lines(),
                           m_demCube->pixelType(),
@@ -109,6 +109,7 @@ namespace Isis {
 
     // Save map scale in pixels per degree
     m_pixPerDegree = (double) mapgrp["Scale"];
+    m_metersPerPix = (double) mapgrp["PixelResolution"];
   }
 
 
@@ -456,10 +457,49 @@ namespace Isis {
    *
    * @param neighborPoints
    */
-  void DemShape::calculateLocalNormal(QVector<double *> neighborPoints) {
+  void DemShape::calculateLocalNormal() {
 
-    std::vector<SpiceDouble> normal(3);
-    if (neighborPoints.isEmpty()) {
+    double longitude = surfaceIntersection()->GetLongitude().degrees();
+    double latitude = surfaceIntersection()->GetLatitude().degrees();
+    if (!m_demProj->SetUniversalGround(latitude, longitude)) {
+      normal[0] = normal[1] = normal[2] = 0.0;
+      setLocalNormal(normal);
+      setHasLocalNormal(false);
+      return;
+    }
+
+    double meterResolution = resolution();
+    double metersPerDegree = m_pixPerDegree * m_metersPerPix;
+    double degreesOfMovement = (meterResolution/metersPerDegree) / 2.0;
+
+    QList< QPair< double, double > > surroundingPoints;
+    surroundingPoints.append(qMakePair(std::nexttoward(latitude - degreesOfMovement, latitude), longitude));
+    surroundingPoints.append(qMakePair(std::nexttoward(latitude + degreesOfMovement, latitude), longitude));
+    surroundingPoints.append(qMakePair(latitude, std::nexttoward(longitude - degreesOfMovement, longitude)));
+    surroundingPoints.append(qMakePair(latitude, std::nexttoward(longitude + degreesOfMovement, longitude)));
+
+    // now we have all four points in the image, so find the same points on the surface
+    std::vector<std::vector<double>> cornerNeighborPoints(4, std::vector<double>(3, 0.0));
+
+    for (int i = 0; i < cornerNeighborPoints.size(); i++) {
+      if (!m_demProj->SetUniversalGround(surroundingPoints[i].first, surroundingPoints[i].second)) {
+        surroundingPoints[i].first = latitude;
+        surroundingPoints[i].second = longitude;
+        m_demProj->SetUniversalGround(surroundingPoints[i].first, surroundingPoints[i].second);
+      }
+
+      // SurfacePoint *surfacePoint = surfaceIntersection();
+      Angle lat = Angle(m_demProj->Latitude(), Angle::Degrees);
+      Angle lon = Angle(m_demProj->Longitude(), Angle::Degrees);
+      Distance radius = localRadius(lat, lon);
+      
+      latrec_c(radius.kilometers(), lon.radians(), lat.radians(), cornerNeighborPoints[i].data());
+    }
+
+    if ((surroundingPoints[0].first == surroundingPoints[1].first &&
+         surroundingPoints[0].second == surroundingPoints[1].second) ||
+        (surroundingPoints[2].first == surroundingPoints[3].first &&
+         surroundingPoints[2].second == surroundingPoints[3].second)) {
       normal[0] = normal[1] = normal[2] = 0.0;
       setLocalNormal(normal);
       setHasLocalNormal(false);
@@ -468,9 +508,9 @@ namespace Isis {
 
     // subtract bottom from top and left from right and store results
     double topMinusBottom[3];
-    vsub_c(neighborPoints[0], neighborPoints[1], topMinusBottom);
+    vsub_c(cornerNeighborPoints[0].data(), cornerNeighborPoints[1].data(), topMinusBottom);
     double rightMinusLeft[3];
-    vsub_c(neighborPoints[3], neighborPoints [2], rightMinusLeft);
+    vsub_c(cornerNeighborPoints[3].data(), cornerNeighborPoints[2].data(), rightMinusLeft);
 
     // take cross product of subtraction results to get normal
     ucrss_c(topMinusBottom, rightMinusLeft, (SpiceDouble *) &normal[0]);
