@@ -156,7 +156,7 @@ namespace Isis {
   /**
    * There is no implementation for this method.
    */
-  void PlaneShape::calculateLocalNormal(QVector<double *> cornerNeighborPoints) {
+  void PlaneShape::calculateLocalNormal() {
   }
 
 

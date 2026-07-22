@@ -121,7 +121,7 @@ class MockShapeModel : public ShapeModel {
     MOCK_METHOD(bool, intersectSurface, (std::vector<double> observerPos, std::vector<double> lookDirection));
     MOCK_METHOD(SurfacePoint*, surfaceIntersection,(), (const));
     MOCK_METHOD(bool, isDEM, (), (const));
-    MOCK_METHOD(void, calculateLocalNormal, (QVector<double *> neighborPoints));
+    MOCK_METHOD(void, calculateLocalNormal, ());
     MOCK_METHOD(void, calculateSurfaceNormal, ());
     MOCK_METHOD(std::vector<double>, normal, ());
     MOCK_METHOD(void, calculateDefaultNormal, ());

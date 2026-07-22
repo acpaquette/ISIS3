@@ -76,7 +76,7 @@ class MyShape : public ShapeModel {
     calculateDefaultNormal();
   }
 
-  virtual void calculateLocalNormal(QVector<double *> cornerNeighborPoints) {
+  virtual void calculateLocalNormal() {
     std::vector<double> myNormal(3);
     myNormal[0] = -0.581842;
     myNormal[1] = -0.703663;
@@ -163,7 +163,7 @@ class MyEllipse : public ShapeModel {
     return false;
   }
 
-  virtual void calculateLocalNormal(QVector<double *> cornerNeighborPoints) {
+  virtual void calculateLocalNormal() {
 
     std::vector<Distance> radii = targetRadii();
     std::vector<double> normal(3, 0.);
@@ -258,10 +258,9 @@ int main() {
               "when there is no intersection:" << endl;
       e.print();
     }
-    QVector<double *>  notUsed(4);
-    for (int i = 0; i < notUsed.size(); i ++) notUsed[i] = new double[3];
+
     try {
-      shape.calculateLocalNormal(notUsed);
+      shape.calculateLocalNormal();
     }
     catch (IException &e) {
       cout << "    Test setNormal(vector) error message when there is no intersection:" << endl;
@@ -322,7 +321,7 @@ int main() {
     cout << endl;
 
     cout << endl << "  Testing class method calculateLocalNormal..." << endl;
-    shape.calculateLocalNormal(notUsed);
+    shape.calculateLocalNormal();
     cout << "    Do we have a normal? " << shape.normalStatus() << endl;
     vector<double> myNormal(3);
     myNormal = shape.normal();
@@ -476,7 +475,7 @@ int main() {
         SurfacePoint badsp;
         eshape.setSurfacePoint(badsp);
         eshape.setHasIntersection(true);
-        eshape.calculateLocalNormal(notUsed);
+        eshape.calculateLocalNormal();
       }
       catch(Isis::IException &e) {
         e.print();
@@ -495,7 +494,7 @@ int main() {
       }
       try {
         cout << endl << "    Testing  method calculateEllipsoidalSurfaceNormal with no intersection..." << endl;
-        eshape.calculateLocalNormal(notUsed);
+        eshape.calculateLocalNormal();
       }
       catch(Isis::IException &e) {
         e.print();
@@ -503,7 +502,7 @@ int main() {
       cout << endl << "    Testing  method calculateEllipsoidalSurfaceNormal with valid intersection..." << endl;
       if (eshape.intersectSurface(sB, lookB)) cout << "    Intersection set" << endl;
       cout << "      Do we have a normal? " << eshape.normalStatus() << endl;
-      eshape.calculateLocalNormal(notUsed);
+      eshape.calculateLocalNormal();
       cout << "      Do we have a normal? " << eshape.normalStatus() << endl;
       myNormal = eshape.normal();
       cout << "      local normal = (" << myNormal[0] << ", " << myNormal[1] << ", " << myNormal[2] << ")" << endl;

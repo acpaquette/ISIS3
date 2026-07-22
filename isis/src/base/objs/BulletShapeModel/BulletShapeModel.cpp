@@ -513,7 +513,7 @@ namespace Isis {
    *
    * @param neighborPoints Input body-fixed points to compute normal for
    */
-  void BulletShapeModel::calculateLocalNormal(QVector<double *> neighborPoints) {
+  void BulletShapeModel::calculateLocalNormal() {
 
     // Sanity check
     if ( !hasIntersection() ) { // hasIntersection()  <==>  !m_intercept.isNull()

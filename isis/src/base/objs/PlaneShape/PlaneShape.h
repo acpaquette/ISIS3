@@ -63,7 +63,7 @@ namespace Isis {
       // Calculate the surface normal of the current intersection point
       void calculateSurfaceNormal();
       void calculateDefaultNormal();
-      void calculateLocalNormal(QVector<double *> cornerNeighborPoints);
+      void calculateLocalNormal();
 
       double emissionAngle(const std::vector<double> & sB);
       double incidenceAngle(const std::vector<double> &uB);

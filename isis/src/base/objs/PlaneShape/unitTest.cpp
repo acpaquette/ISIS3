@@ -117,12 +117,7 @@ int main() {
     shape.intersectSurface(sB, lookB);
 
     cout << endl << "  Testing class method calculateLocalNormal..." << endl;
-    QVector<double *>  notUsed(4);
-
-    for (int i = 0; i < notUsed.size(); i ++)
-        notUsed[i] = new double[3];
-
-    shape.calculateLocalNormal(notUsed);
+    shape.calculateLocalNormal();
     vector<double> myNormal(3);
     myNormal = shape.normal();
     cout << "    local normal = (" << myNormal[0] << ", " << myNormal[1] << ", " << myNormal[2] << ")" << endl;

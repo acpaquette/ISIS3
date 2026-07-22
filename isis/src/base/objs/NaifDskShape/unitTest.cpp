@@ -169,11 +169,7 @@ int main(int argc, char *argv[]) {
     qDebug() << "Default normal:                      "
              << QVector<double>(normal.begin(), normal.end());
 
-    QVector <double *> cornerNeighborPoints;
-    double point[3];
-    point[0] = 1.0;    point[1] = 0.0;    point[2] = 0.0;
-    cornerNeighborPoints.push_back(point);
-    shapeModelFromPvlElevation.calculateLocalNormal(cornerNeighborPoints); 
+    shapeModelFromPvlElevation.calculateLocalNormal(); 
     qDebug() << "Has local normal?                    " << shapeModelFromPvlElevation.hasLocalNormal();
     normal = shapeModelFromPvlElevation.localNormal();
     qDebug() << "Local normal from neighbor points:   "
@@ -200,7 +196,7 @@ int main(int argc, char *argv[]) {
     qDebug() << "";
     qDebug() << "Thrown by calculateLocalNormal() - Failed to find intercept for normal vector. ";
     try {
-      shapeModel.calculateLocalNormal(cornerNeighborPoints);
+      shapeModel.calculateLocalNormal();
     } 
     catch (IException &e) {
       e.print();

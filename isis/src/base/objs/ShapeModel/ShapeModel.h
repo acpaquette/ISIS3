@@ -103,7 +103,7 @@ namespace Isis {
 
       // Calculate the local normal of the current intersection point
       // (relative to neighbor points)
-      virtual void calculateLocalNormal(QVector<double *> neighborPoints) = 0;
+      virtual void calculateLocalNormal() = 0;
 
       // Calculate the surface normal of the current intersection point
       // (relative to ellipsoid)

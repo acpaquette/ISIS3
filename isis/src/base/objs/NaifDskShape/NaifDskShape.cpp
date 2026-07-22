@@ -262,7 +262,7 @@ namespace Isis {
    *
    * @param neighborPoints Input body-fixed points to compute normal for
    */
-  void NaifDskShape::calculateLocalNormal(QVector<double *> neighborPoints) {
+  void NaifDskShape::calculateLocalNormal() {
     // Sanity check
     if ( !hasIntersection() ) { // hasIntersection()  <==>  !m_intercept.isNull()
       QString mess = "Intercept point does not exist - cannot provide normal vector";

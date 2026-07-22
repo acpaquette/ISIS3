@@ -61,7 +61,7 @@ namespace Isis {
       bool isDEM() const;
 
       //! Calculate the local surface normal of the current intersection point
-      void calculateLocalNormal(QVector<double *> cornerNeighborPoints);
+      void calculateLocalNormal();
 
       //! Get the local radius for a point on the surface
       Distance localRadius(const Latitude &lat, const Longitude &lon);

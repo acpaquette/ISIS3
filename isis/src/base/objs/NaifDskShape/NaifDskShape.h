@@ -64,7 +64,7 @@ namespace Isis {
 
       // Calculate the surface normal of the current intersection point
       void setLocalNormalFromIntercept();
-      void calculateLocalNormal(QVector<double *> cornerNeighborPoints);
+      void calculateLocalNormal();
 
       Distance localRadius(const Latitude &lat, const Longitude &lon);
 

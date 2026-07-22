@@ -87,7 +87,7 @@ namespace Isis {
    *
    * @param cornerNeighborPoints
    */
-  void EllipsoidShape::calculateLocalNormal(QVector<double *> cornerNeighborPoints)  {
+  void EllipsoidShape::calculateLocalNormal()  {
     if(!hasNormal()) {
       calculateSurfaceNormal();
     }

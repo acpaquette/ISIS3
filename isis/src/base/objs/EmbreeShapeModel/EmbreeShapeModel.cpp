@@ -499,7 +499,7 @@ namespace Isis {
    *
    * @param neighborPoints Input body-fixed points to compute normal for
    */
-  void EmbreeShapeModel::calculateLocalNormal(QVector<double *> neighborPoints) {
+  void EmbreeShapeModel::calculateLocalNormal() {
     // Sanity check
     if ( !hasIntersection() ) { // hasIntersection()  <==>  hasNormall()
       QString mess = "Intercept point does not exist - cannot provide normal vector";

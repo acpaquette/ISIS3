@@ -73,12 +73,6 @@ namespace Isis {
       // implement pure virtual method from ShapeModel class
       bool isDEM() const;
 
-      // To compute the surface normal, you must call setLocalAreaPoint on top,
-      // bottom, left, and right surrounding points in the image.  Then call
-      // calculateSurfaceNormal and directSurfaceNormal to calculate the normal.
-      // Use removeLOcalAreaPoints to clean up as needed.  See Camera for an
-      // example, or use its GetLocalNormal method.
-
       // Calculate the surface normal of the current intersection point
      void calculateLocalNormal();
 

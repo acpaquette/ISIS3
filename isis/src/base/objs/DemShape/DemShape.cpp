@@ -458,41 +458,43 @@ namespace Isis {
    * @param neighborPoints
    */
   void DemShape::calculateLocalNormal() {
+    std::vector<double> normal(3, 0.0);
 
-    double longitude = surfaceIntersection()->GetLongitude().degrees();
-    double latitude = surfaceIntersection()->GetLatitude().degrees();
-    if (!m_demProj->SetUniversalGround(latitude, longitude)) {
-      normal[0] = normal[1] = normal[2] = 0.0;
+    Latitude latitude = surfaceIntersection()->GetLatitude();
+    Longitude longitude = surfaceIntersection()->GetLongitude();
+    Distance initialRadius = localRadius(latitude, longitude);
+    if (!initialRadius.isValid()) {
       setLocalNormal(normal);
       setHasLocalNormal(false);
       return;
     }
 
-    double meterResolution = resolution();
+    double meterResolution = m_metersPerPix;
     double metersPerDegree = m_pixPerDegree * m_metersPerPix;
-    double degreesOfMovement = (meterResolution/metersPerDegree) / 2.0;
+    double degreesOfMovement = (meterResolution/metersPerDegree);
 
     QList< QPair< double, double > > surroundingPoints;
-    surroundingPoints.append(qMakePair(std::nexttoward(latitude - degreesOfMovement, latitude), longitude));
-    surroundingPoints.append(qMakePair(std::nexttoward(latitude + degreesOfMovement, latitude), longitude));
-    surroundingPoints.append(qMakePair(latitude, std::nexttoward(longitude - degreesOfMovement, longitude)));
-    surroundingPoints.append(qMakePair(latitude, std::nexttoward(longitude + degreesOfMovement, longitude)));
+    surroundingPoints.append(qMakePair(std::nexttoward(latitude.degrees() - degreesOfMovement, latitude.degrees()), longitude.degrees()));
+    surroundingPoints.append(qMakePair(std::nexttoward(latitude.degrees() + degreesOfMovement, latitude.degrees()), longitude.degrees()));
+    surroundingPoints.append(qMakePair(latitude.degrees(), std::nexttoward(longitude.degrees() - degreesOfMovement, longitude.degrees())));
+    surroundingPoints.append(qMakePair(latitude.degrees(), std::nexttoward(longitude.degrees() + degreesOfMovement, longitude.degrees())));
 
     // now we have all four points in the image, so find the same points on the surface
     std::vector<std::vector<double>> cornerNeighborPoints(4, std::vector<double>(3, 0.0));
 
     for (int i = 0; i < cornerNeighborPoints.size(); i++) {
-      if (!m_demProj->SetUniversalGround(surroundingPoints[i].first, surroundingPoints[i].second)) {
-        surroundingPoints[i].first = latitude;
-        surroundingPoints[i].second = longitude;
-        m_demProj->SetUniversalGround(surroundingPoints[i].first, surroundingPoints[i].second);
+      Angle lat = Angle(surroundingPoints[i].first, Angle::Degrees);
+      Angle lon = Angle(surroundingPoints[i].second, Angle::Degrees);
+      Distance radius = localRadius(lat, lon);
+
+      if (!radius.isValid()) {
+        surroundingPoints[i].first = latitude.degrees();
+        surroundingPoints[i].second = longitude.degrees();
+        lat = Angle(surroundingPoints[i].first, Angle::Degrees);
+        lon = Angle(surroundingPoints[i].second, Angle::Degrees);
+        radius = localRadius(lat, lon);
       }
 
-      // SurfacePoint *surfacePoint = surfaceIntersection();
-      Angle lat = Angle(m_demProj->Latitude(), Angle::Degrees);
-      Angle lon = Angle(m_demProj->Longitude(), Angle::Degrees);
-      Distance radius = localRadius(lat, lon);
-      
       latrec_c(radius.kilometers(), lon.radians(), lat.radians(), cornerNeighborPoints[i].data());
     }
 
@@ -500,11 +502,16 @@ namespace Isis {
          surroundingPoints[0].second == surroundingPoints[1].second) ||
         (surroundingPoints[2].first == surroundingPoints[3].first &&
          surroundingPoints[2].second == surroundingPoints[3].second)) {
-      normal[0] = normal[1] = normal[2] = 0.0;
       setLocalNormal(normal);
       setHasLocalNormal(false);
       return;
     }
+    // for (int i = 0; i < cornerNeighborPoints.size(); i++) {
+    //   for (int j = 0; j < 2; j++) {
+    //     std::cout << cornerNeighborPoints[i][j] << ", ";
+    //   }
+    //   std::cout << cornerNeighborPoints[i][2] << std::endl;
+    // }
 
     // subtract bottom from top and left from right and store results
     double topMinusBottom[3];

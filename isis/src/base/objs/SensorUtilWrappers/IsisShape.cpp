@@ -35,10 +35,7 @@ namespace Isis {
     m_shape->intersectSurface(pos, look);
     SurfacePoint *intersection = m_shape->surfaceIntersection();
     if (computeLocalNormal && !m_shape->isDEM()) {
-      QVector<double *> unusedNeighborPoints(4);
-      double origin[3] = {0, 0, 0};
-      unusedNeighborPoints.fill(origin);
-      m_shape->calculateLocalNormal(unusedNeighborPoints);
+      m_shape->calculateLocalNormal();
     }
     else {
       m_shape->calculateSurfaceNormal();

@@ -105,37 +105,17 @@ int main() {
     cout << "    surface point = (" << sp->GetX().kilometers() << ", " <<
       sp->GetY().kilometers() << ", " << sp->GetZ().kilometers() << endl;
 
-    cout << endl << "  Testing class method calculateLocalNormal "
-                    "with no neighbor points" << endl;
-    QVector<double *>  neighborPoints;
-    shape.calculateLocalNormal(neighborPoints);
+    cout << endl << "  Testing class method calculateLocalNormal" << endl;
+    shape.calculateLocalNormal();
     cout << "    has normal? " << toString(shape.hasLocalNormal()) << endl;
 
     cout << endl << "  Testing class method calculateLocalNormal "
                     "with correction for inward pointing vector" << endl;
-    neighborPoints.resize(4);
-
   // neighbor 0 -2123.07 -2380.15 1195.48
   // neighbor 1 -2123.66 -2380.59 1193.88
   // neighbor 2 -2123.83 -2379.95 1194.73
   // neighbor 3 -2122.89 -2380.79 1194.63
-    for (int i = 0; i < neighborPoints.size(); i ++)
-      neighborPoints[i] = new double[3];
-
-    neighborPoints[0][0]  = -2123.07;
-    neighborPoints[0][1]  = -2380.15;
-    neighborPoints[0][2]  = 1195.48;
-    neighborPoints[1][0]  = -2123.66;
-    neighborPoints[1][1]  = -2380.59;
-    neighborPoints[1][2]  = 1193.88;
-    neighborPoints[2][0]  = -2123.83;
-    neighborPoints[2][1]  = -2379.95;
-    neighborPoints[2][2]  = 1194.73;
-    neighborPoints[3][0]  = -2122.89;
-    neighborPoints[3][1]  = -2380.79;
-    neighborPoints[3][2]  = 1194.63;
-
-    shape.calculateLocalNormal(neighborPoints);
+    shape.calculateLocalNormal();
     vector<double> myNormal(3);
     myNormal = shape.localNormal();
     cout << "    local normal = (" << myNormal[0] << ", " << myNormal[1] << ", " << myNormal[2] << endl;
@@ -197,35 +177,6 @@ int main() {
     catch(Isis::IException &e) {
       e.print();
     }
-
-
-    // Test calculateLocalNormal with dotprod > 0
-    neighborPoints[2][0]  = -2123.07;
-    neighborPoints[2][1]  = -2380.15;
-    neighborPoints[2][2]  = 1195.48;
-    neighborPoints[3][0]  = 2123.66;
-    neighborPoints[3][1]  = 2380.59;
-    neighborPoints[3][2]  = 1193.88;
-    cout << endl << "  Testing method calculateLocalNormal with vector pointing outward" << endl;
-    shape.calculateLocalNormal(neighborPoints);
-    myNormal = shape.localNormal();
-    cout << "    local normal = (" << myNormal[0] << ", " << myNormal[1] << ", " << myNormal[2] << endl;
-
-    // Test calculateLocalNormal with tiny magnitude. The test with 0 magnitude
-    // fails on Intel and succeeds on Arm, for mysterious architectural reasons,
-    // so better not test that here. Likely numerical underflow is handled
-    // differently on these platforms.
-    try {
-      neighborPoints[3][0]  = -2123.66001;
-      neighborPoints[3][1]  = -2380.59001;
-      cout << endl << "  Testing method calculateLocalNormal with tiny magnitude." << endl;
-      shape.calculateLocalNormal(neighborPoints);
-      myNormal = shape.localNormal();
-      cout << "    local normal = (" << myNormal[0] << ", " << myNormal[1] << ", " << myNormal[2] << ")" << endl;
-    } catch(Isis::IException &e) {
-      e.print();
-    }
-
 
     cube.close();
   }

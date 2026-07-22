@@ -75,8 +75,7 @@ int main() {
     if (!shape.hasIntersection()) cout << "    Intersection failed " << endl;
     cout << endl << "  Testing method calculateLocalNormal with intersection failure..." << endl;
     try {
-      QVector<double *> emptyVector;
-      shape.calculateLocalNormal(emptyVector);
+      shape.calculateLocalNormal();
     }
     catch (IException &e) {
       e.print();
@@ -112,12 +111,7 @@ int main() {
     cout << "    Do we have an intersection? " << shape.hasIntersection() << endl;
 
     cout << endl << "  Testing class method calculateLocalNormal..." << endl;
-    QVector<double *>  notUsed(4);
-
-    for (int i = 0; i < notUsed.size(); i ++)
-        notUsed[i] = new double[3];
-
-    shape.calculateLocalNormal(notUsed);
+    shape.calculateLocalNormal();
     vector<double> myNormal(3);
     myNormal = shape.localNormal();
 

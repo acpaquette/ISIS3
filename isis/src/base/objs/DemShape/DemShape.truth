@@ -12,9 +12,17 @@ Begin testing Dem Shape Model class....
     surface point = (-2123.36, -2380.37, 1194.68
 
   Testing class method calculateLocalNormal with no neighbor points
+-2123.07 -2380.15 1195.48
+-2123.66 -2380.59 1193.88
+-2123.83 -2379.95 1194.73
+-2122.89 -2380.79 1194.63
     has normal? No
 
   Testing class method calculateLocalNormal with correction for inward pointing vector
+-2123.07 -2380.15 1195.48
+-2123.66 -2380.59 1193.88
+-2123.83 -2379.95 1194.73
+-2122.89 -2380.79 1194.63
     local normal = (-0.58374, -0.701835, 0.408259
 
   Testing class method calculateSurfaceNormal...
