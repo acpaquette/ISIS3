@@ -290,8 +290,8 @@ namespace Isis {
     bool converged = false;
     // Use 1/1000 of a pixel as tolerance. Otherwise the results may be not 
     // accurate enough for ground-level sensors with oblique views.
-    double tolFactor = 1000.0;
-    double tol = resolution() / tolFactor;
+    double tolFactor = 100000.0;
+    double tol = 1 / tolFactor;
     for (int i = 1; i <= 15; i++) {
       
       // Convert to meters and compare with tolerance
@@ -299,7 +299,6 @@ namespace Isis {
         
         // Recompute tolerance at updated surface point and recheck
         surfaceIntersection()->FromNaifArray(intersectionPoint);
-        tol = resolution() / tolFactor;
         
         if (std::abs(f1) * 1000.0 < tol) {
           converged = true;
