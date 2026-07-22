@@ -1485,6 +1485,7 @@ namespace Isis {
       return;
     }
 
+    shapeModel->setResolution(resolution());
     shapeModel->calculateLocalNormal();
 
     // Set the method normal values

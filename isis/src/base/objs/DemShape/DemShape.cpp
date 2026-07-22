@@ -110,6 +110,7 @@ namespace Isis {
     // Save map scale in pixels per degree
     m_pixPerDegree = (double) mapgrp["Scale"];
     m_metersPerPix = (double) mapgrp["PixelResolution"];
+    setResolution(m_metersPerPix);
   }
 
 
@@ -469,7 +470,7 @@ namespace Isis {
       return;
     }
 
-    double meterResolution = m_metersPerPix;
+    double meterResolution = resolution();
     double metersPerDegree = m_pixPerDegree * m_metersPerPix;
     double degreesOfMovement = (meterResolution/metersPerDegree);
 

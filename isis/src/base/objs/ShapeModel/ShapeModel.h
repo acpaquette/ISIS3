@@ -155,6 +155,8 @@ namespace Isis {
       virtual bool isVisibleFrom(const std::vector<double> observerPos,
                                  const std::vector<double> lookDirection);
 
+      void setResolution(double resolution);
+
     protected:
 
       // Set the surface normal of the current intersection point
@@ -184,6 +186,7 @@ namespace Isis {
       bool m_hasIntersection;          //!< indicates good intersection exists
       bool m_hasNormal;                //!< indicates normal has been computed
       bool m_hasLocalNormal;                //!< indicates local normal has been computed
+      double m_resolution;
       std::vector<double> m_normal;    //!< Surface normal of current intersection point
       std::vector<double> m_localNormal;    //!< Local normal of current intersection point
       QString *m_name;                 //! < Name of the shape

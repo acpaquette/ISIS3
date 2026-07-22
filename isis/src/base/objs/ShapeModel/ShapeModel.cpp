@@ -498,6 +498,10 @@ namespace Isis {
     return (false);
   }
 
+  void ShapeModel::setResolution(double resolution) {
+    m_resolution = resolution;
+  }
+
   /**
    * Returns the status of the target. If it is NULL, this method
    * returns false.
@@ -707,13 +711,7 @@ namespace Isis {
    * @return @double The pixel resolution at the surface intersection.
    */
   double ShapeModel::resolution() {
-    if (hasValidTarget() && m_hasIntersection) {
-      return m_target->spice()->resolution();
-    }
-    else {
-      QString message = "No valid intersection point for computing resolution.";
-      throw IException(IException::Programmer, message, _FILEINFO_);
-    }
+      return m_resolution;
   }
 
 }
