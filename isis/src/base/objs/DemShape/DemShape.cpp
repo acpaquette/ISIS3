@@ -290,7 +290,7 @@ namespace Isis {
     bool converged = false;
     // Use 1/1000 of a pixel as tolerance. Otherwise the results may be not 
     // accurate enough for ground-level sensors with oblique views.
-    double tolFactor = 100000.0;
+    double tolFactor = 1000.0;
     double tol = 1 / tolFactor;
     for (int i = 1; i <= 15; i++) {
       
