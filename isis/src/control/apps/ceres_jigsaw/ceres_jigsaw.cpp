@@ -62,10 +62,10 @@ namespace Isis {
   void ceresCheckImageList(SerialNumberList &heldSerialList, SerialNumberList &cubeSerialList);
   QList<BundleObservationSolveSettings> ceresObservationSolveSettings(UserInterface &ui);
 
-  // // 9 potential position coefficients
-  // // 9 potentail rotation coefficients
-  // // This could change if the user changes the degree of
-  // // the polynomial to represent rotations/positions
+  // 9 potential position coefficients
+  // 9 potentail rotation coefficients
+  // This could change if the user changes the degree of
+  // the polynomial to represent rotations/positions
   // const int numParams = 9 + 9;
 
   struct PointParameters {
@@ -88,9 +88,20 @@ namespace Isis {
     }
   };
 
+  struct GroundParameters {
+    std::vector<double *> parameters;
+
+    GroundParameters () {}
+
+    GroundParameters(double *groundPt) {
+      parameters.resize(1);
+      parameters[0] = groundPt;
+    }
+  };
+
   void ceres_jigsaw(UserInterface &ui, Pvl *log) {
     Progress progress;
-    BundleSettingsQsp settings = ceresBundleSettings(ui);
+    QSharedPointer<BundleSettings> settings = ceresBundleSettings(ui);
 
     // initialize solution parameters
     BundleObservationSolveSettings solveSettings = settings->observationSolveSettings(0);
@@ -175,7 +186,8 @@ namespace Isis {
     // Convert to pointer of similar data
     // That is, each entry should point to some cameras set of
     // polys rather than making a duplicate entry
-    std::vector<PointParameters> bundleParameters(network.GetNumValidMeasures());
+    std::vector<PointParameters> bundlePointParameters(network.GetNumValidMeasures());
+    std::vector<GroundParameters> bundleGroundParameters(network.GetNumValidPoints());
     double **observedPoints = new double*[network.GetNumValidMeasures()];
     for (int i = 0; i < network.GetNumValidMeasures(); i++) {
       observedPoints[i] = new double[2];
@@ -184,49 +196,61 @@ namespace Isis {
       }
     }
 
-    std::vector<Camera *> cameras(network.GetNumValidMeasures());
+    std::vector<Camera *> cameras(network.GetNumValidMeasures(), nullptr);
+    std::vector<double> measureSigmas(network.GetNumValidMeasures(), 1.0);
+    std::vector<std::vector<double>> observedGround(network.GetNumValidPoints(), std::vector<double>(3, 0.0));
+    std::vector<std::vector<double>> groundSigmas(network.GetNumValidPoints(), std::vector<double>(3, 1.0));
     int vector_idx = 0;
     for (int i = 0; i < network.GetNumPoints(); i++) {
-      ControlPoint *point = network.GetPoint(i);
-      if (point->IsIgnored()) {
+      if (network.GetPoint(i)->IsIgnored()) {
         continue;
       }
-      point->ComputeApriori();
-      SurfacePoint ground = point->GetAprioriSurfacePoint();
+      BundleControlPoint point = BundleControlPoint(settings, network.GetPoint(i));
+      point.rawControlPoint()->ComputeApriori();
+      
+      SurfacePoint ground = point.rawControlPoint()->GetAprioriSurfacePoint();
       double *groundCoord = new double[3];
       groundCoord[0] = ground.GetX().kilometers();
       groundCoord[1] = ground.GetY().kilometers();
       groundCoord[2] = ground.GetZ().kilometers();
-      for (int j = 0; j < point->GetNumMeasures(); j++) {
-        ControlMeasure *measure = point->GetMeasure(j);
-        if (measure->IsIgnored()) {
-          continue;
-        }
+      
+      bundleGroundParameters[i] = GroundParameters(groundCoord);
+      observedGround[i] = {groundCoord[0], groundCoord[1], groundCoord[2]};
+      groundSigmas[i] = std::vector<double>(point.aprioriSigmas().begin(), point.aprioriSigmas().end());
+      for (int j = 0; j < point.numberOfMeasures(); j++) {
+        QSharedPointer<BundleMeasure> measure = point.at(j);
 
-        observedPoints[vector_idx][0] = measure->GetSample();
-        observedPoints[vector_idx][1] = measure->GetLine();
+        observedPoints[vector_idx][0] = measure->sample();
+        observedPoints[vector_idx][1] = measure->line();
 
-        QString serialNumber = measure->GetCubeSerialNumber();
-        cameras[vector_idx] = network.Camera(serialNumber);
+        QString serialNumber = measure->cubeSerialNumber();
+        cameras[vector_idx] = measure->camera();
+        
+        // Magic number from ISIS implementation. This does not actually set the sigma to 1.4
+        // See function for more detail
+        measure->setSigma(1.4);
+        // Do we want weight or sigma?
+        // try with sigma, see what happens
+        measureSigmas[vector_idx] = measure->sigma();
+
         // Copy data to spots in pointParameters
-        bundleParameters[vector_idx] = PointParameters(polyMap[serialNumber], groundCoord, rotationParamSize, positionParamSize);
+        bundlePointParameters[vector_idx] = PointParameters(polyMap[serialNumber], groundCoord, rotationParamSize, positionParamSize);
         vector_idx++;
       }
     }
     std::cout << std::setprecision(15);
     for ( int i = 0; i < 10; i++) {
       std::cout << "INITIAL GP: ";
-      std::cout << bundleParameters[i].parameters[rotationParamSize + positionParamSize][0] << ", ";
-      std::cout << bundleParameters[i].parameters[rotationParamSize + positionParamSize][1] << ", ";
-      std::cout << bundleParameters[i].parameters[rotationParamSize + positionParamSize][2] << std::endl;
+      std::cout << bundlePointParameters[i].parameters[rotationParamSize + positionParamSize][0] << ", ";
+      std::cout << bundlePointParameters[i].parameters[rotationParamSize + positionParamSize][1] << ", ";
+      std::cout << bundlePointParameters[i].parameters[rotationParamSize + positionParamSize][2] << std::endl;
     }
 
-    int numRotationParams = (int)solveRotation;
-    int numPositionParams = (int)solvePosition;
+    // int numRotationParams = (int)solveRotation;
+    // int numPositionParams = (int)solvePosition;
 
     ceres::LossFunction* loss_function = new ceres::HuberLoss(1.0);
     ceres::Problem problem;
-    // network.GetNumValidMeasures()
     for (int i = 0; i < network.GetNumValidMeasures(); ++i) {
       auto* cost_function =
           SnavelyReprojectionErrorFunctor::Create(observedPoints[i][0],
@@ -234,7 +258,8 @@ namespace Isis {
                                                   cameras[i],
                                                   positionParamSize,
                                                   rotationParamSize,
-                                                  solveSettings);
+                                                  measureSigmas[i],
+                                                  &solveSettings);
       for (int j = 0; j < positionParamSize; j++) {
         cost_function->AddParameterBlock(3);
       }
@@ -245,26 +270,32 @@ namespace Isis {
       cost_function->SetNumResiduals(2);
       problem.AddResidualBlock(cost_function,
                                loss_function,
-                               bundleParameters[i].parameters);
+                               bundlePointParameters[i].parameters);
       if (solvePosition < BundleObservationSolveSettings::InstrumentPositionSolveOption::PositionVelocityAcceleration) {
-        problem.SetParameterBlockConstant(bundleParameters[i].parameters[2]);
+        problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[2]);
         if (solvePosition < BundleObservationSolveSettings::InstrumentPositionSolveOption::PositionVelocity) {
-          problem.SetParameterBlockConstant(bundleParameters[i].parameters[1]);
+          problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[1]);
           if (solvePosition < BundleObservationSolveSettings::InstrumentPositionSolveOption::PositionOnly) {
-            problem.SetParameterBlockConstant(bundleParameters[i].parameters[0]);
+            problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[0]);
           }
         }
       }
 
       if (solveRotation < BundleObservationSolveSettings::InstrumentPointingSolveOption::AnglesVelocityAcceleration) {
-        problem.SetParameterBlockConstant(bundleParameters[i].parameters[5]);
+        problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[5]);
         if (solveRotation < BundleObservationSolveSettings::InstrumentPointingSolveOption::AnglesVelocity) {
-          problem.SetParameterBlockConstant(bundleParameters[i].parameters[4]);
+          problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[4]);
           if (solveRotation < BundleObservationSolveSettings::InstrumentPointingSolveOption::AnglesOnly) {
-            problem.SetParameterBlockConstant(bundleParameters[i].parameters[3]);
+            problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[3]);
           }
         }
       }
+    }
+
+    for (int i = 0; i < network.GetNumValidPoints(); i++) {
+      auto* cost_function = XYZError::Create(observedGround[i], groundSigmas[i]);
+      ceres::LossFunction* loss_function = new ceres::HuberLoss(1.0);
+      problem.AddResidualBlock(cost_function, loss_function, bundleGroundParameters[i].parameters);
     }
 
     ceres::Solver::Options options;
@@ -277,9 +308,9 @@ namespace Isis {
     std::cout << summary.FullReport() << "\n";
     for ( int i = 0; i < 10; i++) {
       std::cout << "POST GP: ";
-      std::cout << bundleParameters[i].parameters[rotationParamSize + positionParamSize][0] << ", ";
-      std::cout << bundleParameters[i].parameters[rotationParamSize + positionParamSize][1] << ", ";
-      std::cout << bundleParameters[i].parameters[rotationParamSize + positionParamSize][2] << std::endl;
+      std::cout << bundlePointParameters[i].parameters[rotationParamSize + positionParamSize][0] << ", ";
+      std::cout << bundlePointParameters[i].parameters[rotationParamSize + positionParamSize][1] << ", ";
+      std::cout << bundlePointParameters[i].parameters[rotationParamSize + positionParamSize][2] << std::endl;
     }
     for (int i = 0; i < snList.size(); i++) {
       QString serialNumber = snList.serialNumber(i);
@@ -352,7 +383,10 @@ namespace Isis {
             }
           }
           camera->instrumentPosition()->SetPolynomialDegree(solveSettings.spkSolveDegree());
-          camera->instrumentPosition()->SetPolynomial(positionPolys[0], positionPolys[1], positionPolys[2]);
+          camera->instrumentPosition()->SetPolynomial(positionPolys[0], 
+                                                      positionPolys[1], 
+                                                      positionPolys[2],
+                                                      solveSettings.positionInterpolationType());
           Table spvector = camera->instrumentPosition()->Cache("InstrumentPosition");
           spvector.Label().addComment(jigComment);
           cube->write(spvector);
@@ -367,7 +401,10 @@ namespace Isis {
             }
           }
           camera->instrumentRotation()->SetPolynomialDegree(solveSettings.ckSolveDegree());
-          camera->instrumentRotation()->SetPolynomial(anglePolys[0], anglePolys[1], anglePolys[2]);
+          camera->instrumentRotation()->SetPolynomial(anglePolys[0], 
+                                                      anglePolys[1], 
+                                                      anglePolys[2], 
+                                                      solveSettings.pointingInterpolationType());
           Table cmatrix = camera->instrumentRotation()->Cache("InstrumentPointing");
           cmatrix.Label().addComment(jigComment);
           cube->write(cmatrix);
@@ -395,7 +432,7 @@ namespace Isis {
       if (point->IsIgnored()) {
         continue;
       }
-      delete []bundleParameters[groundPointIdx].parameters[rotationParamSize + positionParamSize];
+      delete []bundlePointParameters[groundPointIdx].parameters[rotationParamSize + positionParamSize];
       for (int j = 0; j < point->GetNumMeasures(); j++) {
         ControlMeasure *measure = point->GetMeasure(j);
         if (measure->IsIgnored()) {
