@@ -16,12 +16,13 @@ struct SnavelyReprojectionFunctor {
   Camera *m_camera;
   int m_positionParamSize;
   int m_rotationParamSize;
-  BundleObservationSolveSettings &m_settings;
+  BundleObservationSolveSettings *m_settings;
   
   SnavelyReprojectionFunctor(Camera *camera, 
                              int positionParamSize, 
                              int rotationParamSize,
-                             BundleObservationSolveSettings &settings) : 
+                             double sigma,
+                             BundleObservationSolveSettings *settings) : 
                             m_camera(camera),  
                             m_positionParamSize(positionParamSize),
                             m_rotationParamSize(rotationParamSize),
@@ -29,7 +30,7 @@ struct SnavelyReprojectionFunctor {
   }
 
   bool operator()(double const* const* parameters, double* results) const {
-    if (m_settings.instrumentPointingSolveOption() != 0) {
+    if (m_settings->instrumentPositionSolveOption() != 0) {
       std::vector<std::vector<double>> positionPolys(3, std::vector<double>(m_positionParamSize, 0.0));
       SpicePosition *instPosition = m_camera->instrumentPosition();
       // Based on solve settings we need to only update the correct coeffs
@@ -45,6 +46,7 @@ struct SnavelyReprojectionFunctor {
         }
       }
 
+      // std::cout << "Position Poly" << std::endl;
       // for (int j = 0; j < positionPolys.size(); j++) {
       //   for (int k = 0; k < positionPolys[0].size(); k++) {
       //     std::cout << positionPolys[j][k] << ", ";
@@ -52,10 +54,13 @@ struct SnavelyReprojectionFunctor {
       //   std::cout << std::endl;
       // }
       // std::cout << std::endl;
-      instPosition->SetPolynomial(positionPolys[0], positionPolys[1], positionPolys[2]);
+      instPosition->SetPolynomial(positionPolys[0], 
+                                  positionPolys[1], 
+                                  positionPolys[2],
+                                  m_settings->positionInterpolationType());
     }
 
-    if (m_settings.instrumentPointingSolveOption() != 0) {
+    if (m_settings->instrumentPointingSolveOption() != 0) {
       std::vector<std::vector<double>> anglePolys(3, std::vector<double>(m_rotationParamSize, 0.0));
       SpiceRotation *instPointing = m_camera->instrumentRotation();
       // Based on solve settings we need to only update the correct coeffs
@@ -70,6 +75,7 @@ struct SnavelyReprojectionFunctor {
           anglePolys[j][k] = parameters[k + m_positionParamSize][j];
         }
       }
+      // std::cout << "Pointing Poly" << std::endl;
       // for (int j = 0; j < anglePolys.size(); j++) {
       //   for (int k = 0; k < anglePolys[0].size(); k++) {
       //     std::cout << anglePolys[j][k] << ", ";
@@ -77,7 +83,10 @@ struct SnavelyReprojectionFunctor {
       //   std::cout << std::endl;
       // }
       // std::cout << std::endl;
-      instPointing->SetPolynomial(anglePolys[0], anglePolys[1], anglePolys[2]);
+      instPointing->SetPolynomial(anglePolys[0], 
+                                  anglePolys[1], 
+                                  anglePolys[2],
+                                  m_settings->pointingInterpolationType());
     }
     Displacement x(parameters[6][0], Displacement::Units::Kilometers);
     Displacement y(parameters[6][1], Displacement::Units::Kilometers);
@@ -98,11 +107,11 @@ struct SnavelyReprojectionFunctor {
 
 
 struct SnavelyReprojectionErrorFunctor {
-  SnavelyReprojectionErrorFunctor(double observed_x, double observed_y, Camera *camera, int positionParamSize, int rotationParamSize, BundleObservationSolveSettings &settings)
-      : observed_x(observed_x), observed_y(observed_y) {
+  SnavelyReprojectionErrorFunctor(double observed_x, double observed_y, Camera *camera, int positionParamSize, int rotationParamSize, double sigma, BundleObservationSolveSettings *settings)
+      : m_observed_x(observed_x), m_observed_y(observed_y), m_sigma(sigma) {
 
     auto *cost_function = new ceres::DynamicNumericDiffCostFunction<SnavelyReprojectionFunctor, ceres::CENTRAL>
-          (new SnavelyReprojectionFunctor(camera, positionParamSize, rotationParamSize, settings));
+          (new SnavelyReprojectionFunctor(camera, sigma, positionParamSize, rotationParamSize, settings));
     cost_function->AddParameterBlock(positionParamSize);
     cost_function->AddParameterBlock(positionParamSize);
     cost_function->AddParameterBlock(positionParamSize);
@@ -119,8 +128,9 @@ struct SnavelyReprojectionErrorFunctor {
   bool operator()(T const* const* parameters, T* residuals) const {
     T computed[2];
     (*compute_point)(parameters, computed);
-    residuals[0] = observed_x - computed[0];
-    residuals[1] = observed_y - computed[1];
+    // ISIS uses the same sigma for X, and Y residuals. Should we do that here?
+    residuals[0] = (m_observed_x - computed[0]) / m_sigma;
+    residuals[1] = (m_observed_y - computed[1]) / m_sigma;
     return true;
   }
 
@@ -131,13 +141,15 @@ struct SnavelyReprojectionErrorFunctor {
                       Camera *camera,
                       int positionParamSize,
                       int rotationParamSize, 
-                      BundleObservationSolveSettings &settings) {
+                      double sigma,
+                      BundleObservationSolveSettings *settings) {
     return new ceres::DynamicNumericDiffCostFunction<SnavelyReprojectionErrorFunctor, ceres::CENTRAL>
-           (new SnavelyReprojectionErrorFunctor(observed_x, observed_y, camera, positionParamSize, rotationParamSize, settings));
+           (new SnavelyReprojectionErrorFunctor(observed_x, observed_y, camera, positionParamSize, rotationParamSize, sigma, settings));
   }
 
-  double observed_x;
-  double observed_y;
+  double m_observed_x;
+  double m_observed_y;
+  double m_sigma;
   std::unique_ptr<ceres::DynamicCostFunctionToFunctor> compute_point;
 };
 
