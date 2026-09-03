@@ -34,13 +34,14 @@ find files of those names at the top level of this repository. **/
 #include "ControlPoint.h"
 #include "CubeAttribute.h"
 #include "Displacement.h"
-#include "ReprojectionCostFuncs.h"
 #include "GroundCoordCostFuncs.h"
 #include "IException.h"
 #include "iTime.h"
 #include "MaximumLikelihoodWFunctions.h"
+#include "PositionRotationCostFuncs.h"
 #include "Process.h"
 // #include "SensorUtilities.h"
+#include "ReprojectionCostFuncs.h"
 #include "SerialNumber.h"
 #include "SerialNumberList.h"
 #include "Table.h"
@@ -183,24 +184,22 @@ namespace Isis {
       polyMap[serialNumber] = cameraPolynomials;
       originalPolyMap[serialNumber] = originalCameraPolynomials;
     }
+
     // Convert to pointer of similar data
     // That is, each entry should point to some cameras set of
     // polys rather than making a duplicate entry
     std::vector<PointParameters> bundlePointParameters(network.GetNumValidMeasures());
     std::vector<GroundParameters> bundleGroundParameters(network.GetNumValidPoints());
     double **observedPoints = new double*[network.GetNumValidMeasures()];
-    for (int i = 0; i < network.GetNumValidMeasures(); i++) {
-      observedPoints[i] = new double[2];
-      for (int j = 0; j < 2; j++) {
-        observedPoints[i][j] = 0;
-      }
-    }
 
     std::vector<Camera *> cameras(network.GetNumValidMeasures(), nullptr);
     std::vector<double> measureSigmas(network.GetNumValidMeasures(), 1.0);
     std::vector<std::vector<double>> observedGround(network.GetNumValidPoints(), std::vector<double>(3, 0.0));
     std::vector<std::vector<double>> groundSigmas(network.GetNumValidPoints(), std::vector<double>(3, 1.0));
     int vector_idx = 0;
+    progress.SetText("Loading ceres data...");
+    progress.SetMaximumSteps(network.GetNumPoints());
+    progress.CheckStatus();
     for (int i = 0; i < network.GetNumPoints(); i++) {
       if (network.GetPoint(i)->IsIgnored()) {
         continue;
@@ -220,6 +219,7 @@ namespace Isis {
       for (int j = 0; j < point.numberOfMeasures(); j++) {
         QSharedPointer<BundleMeasure> measure = point.at(j);
 
+        observedPoints[vector_idx] = new double[2];
         observedPoints[vector_idx][0] = measure->sample();
         observedPoints[vector_idx][1] = measure->line();
 
@@ -237,7 +237,9 @@ namespace Isis {
         bundlePointParameters[vector_idx] = PointParameters(polyMap[serialNumber], groundCoord, rotationParamSize, positionParamSize);
         vector_idx++;
       }
+      progress.CheckStatus();
     }
+
     std::cout << std::setprecision(15);
     for ( int i = 0; i < 10; i++) {
       std::cout << "INITIAL GP: ";
@@ -245,9 +247,6 @@ namespace Isis {
       std::cout << bundlePointParameters[i].parameters[rotationParamSize + positionParamSize][1] << ", ";
       std::cout << bundlePointParameters[i].parameters[rotationParamSize + positionParamSize][2] << std::endl;
     }
-
-    // int numRotationParams = (int)solveRotation;
-    // int numPositionParams = (int)solvePosition;
 
     ceres::LossFunction* loss_function = new ceres::HuberLoss(1.0);
     ceres::Problem problem;
@@ -422,10 +421,6 @@ namespace Isis {
     }
     originalPolyMap.clear();
 
-    for (int i = 0; i < network.GetNumValidMeasures(); i++) {
-      delete []observedPoints[i];
-    }
-
     int groundPointIdx = 0;
     for (int i = 0; i < network.GetNumPoints(); i++) {
       ControlPoint *point = network.GetPoint(i);
@@ -438,6 +433,7 @@ namespace Isis {
         if (measure->IsIgnored()) {
           continue;
         }
+        delete []observedPoints[groundPointIdx];
         groundPointIdx++;
       }
     }
