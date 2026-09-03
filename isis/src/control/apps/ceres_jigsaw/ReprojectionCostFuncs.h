@@ -112,12 +112,12 @@ struct SnavelyReprojectionErrorFunctor {
 
     auto *cost_function = new ceres::DynamicNumericDiffCostFunction<SnavelyReprojectionFunctor, ceres::CENTRAL>
           (new SnavelyReprojectionFunctor(camera, sigma, positionParamSize, rotationParamSize, settings));
-    cost_function->AddParameterBlock(positionParamSize);
-    cost_function->AddParameterBlock(positionParamSize);
-    cost_function->AddParameterBlock(positionParamSize);
-    cost_function->AddParameterBlock(rotationParamSize);
-    cost_function->AddParameterBlock(rotationParamSize);
-    cost_function->AddParameterBlock(rotationParamSize);
+    for (int j = 0; j < positionParamSize; j++) {
+      cost_function->AddParameterBlock(3);
+    }
+    for (int j = 0; j < rotationParamSize; j++) {
+      cost_function->AddParameterBlock(3);
+    }
     cost_function->AddParameterBlock(3);
     cost_function->SetNumResiduals(2);
 
