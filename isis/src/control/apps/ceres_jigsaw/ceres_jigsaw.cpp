@@ -100,6 +100,24 @@ namespace Isis {
     }
   };
 
+  struct CameraParameters {
+    std::vector<double *> parameters;
+
+    CameraParameters () {}
+
+    CameraParameters(double *polynomials, int positionSize, int rotationSize) {
+      parameters.resize(positionSize + rotationSize);
+      for (int i = 0; i < positionSize; i++) {
+        parameters[i] = &polynomials[i * 3];
+      }
+
+      int positionOffset = 3 * positionSize;
+      for (int i = 0; i < rotationSize; i++) {
+        parameters[i + positionSize] = &polynomials[positionOffset + (i * 3)];
+      }
+    }
+  };
+
   void ceres_jigsaw(UserInterface &ui, Pvl *log) {
     Progress progress;
     QSharedPointer<BundleSettings> settings = ceresBundleSettings(ui);
@@ -122,6 +140,13 @@ namespace Isis {
     network.SetImages(snList, &progress);
     std::map<QString, double *> polyMap;
     std::map<QString, double *> originalPolyMap;
+    std::vector<CameraParameters> bundleCameraParameters(snList.size());
+    // This is set globally for all cameras, there should likely be a way to set this on an individual
+    // camera
+    std::vector<double> positionSigmas(solveSettings.aprioriPositionSigmas().constBegin(), 
+                                       solveSettings.aprioriPositionSigmas().constEnd());
+    std::vector<double> rotationSigmas(solveSettings.aprioriPointingSigmas().constBegin(), 
+                                       solveSettings.aprioriPointingSigmas().constEnd());
     for (int i = 0; i < snList.size(); i++) {
       QString serialNumber = snList.serialNumber(i);
       std::cout << serialNumber << std::endl;
@@ -183,6 +208,9 @@ namespace Isis {
       std::cout << std::endl;
       polyMap[serialNumber] = cameraPolynomials;
       originalPolyMap[serialNumber] = originalCameraPolynomials;
+      bundleCameraParameters[i] = CameraParameters(polyMap[serialNumber], 
+                                                   positionParamSize,
+                                                   rotationParamSize);
     }
 
     // Convert to pointer of similar data
@@ -250,6 +278,16 @@ namespace Isis {
 
     ceres::LossFunction* loss_function = new ceres::HuberLoss(1.0);
     ceres::Problem problem;
+    for (int i = 0; i < snList.size(); i++) {
+      auto* cost_function = PositionRotationErrorFunctor::Create(bundleCameraParameters[i].parameters,
+                                                                 positionParamSize,
+                                                                 rotationParamSize,
+                                                                 positionSigmas,
+                                                                 rotationSigmas);
+      ceres::LossFunction* loss_function = new ceres::HuberLoss(1.0);
+      problem.AddResidualBlock(cost_function, loss_function, bundleCameraParameters[i].parameters);
+    }
+
     for (int i = 0; i < network.GetNumValidMeasures(); ++i) {
       auto* cost_function =
           SnavelyReprojectionErrorFunctor::Create(observedPoints[i][0],
