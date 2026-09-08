@@ -16,16 +16,18 @@ struct SnavelyReprojectionFunctor {
   Camera *m_camera;
   int m_positionParamSize;
   int m_rotationParamSize;
+  SurfacePoint::CoordinateType m_coordType;
   BundleObservationSolveSettings *m_settings;
   
   SnavelyReprojectionFunctor(Camera *camera, 
                              int positionParamSize, 
                              int rotationParamSize,
-                             double sigma,
+                             SurfacePoint::CoordinateType coordType,
                              BundleObservationSolveSettings *settings) : 
                             m_camera(camera),  
                             m_positionParamSize(positionParamSize),
                             m_rotationParamSize(rotationParamSize),
+                            m_coordType(coordType),
                             m_settings(settings) {
   }
 
@@ -88,11 +90,20 @@ struct SnavelyReprojectionFunctor {
                                   anglePolys[2],
                                   m_settings->pointingInterpolationType());
     }
-    Displacement x(parameters[6][0], Displacement::Units::Kilometers);
-    Displacement y(parameters[6][1], Displacement::Units::Kilometers);
-    Displacement z(parameters[6][2], Displacement::Units::Kilometers);
+    SurfacePoint surfacePoint;
+    if (m_coordType == SurfacePoint::Latitudinal) {
+      Latitude lat(parameters[6][0], Angle::Units::Radians);
+      Longitude lon(parameters[6][1], Angle::Units::Radians);
+      Distance radius(parameters[6][2], Displacement::Units::Kilometers);
+      surfacePoint = SurfacePoint(lat, lon, radius);
+    }
+    else {
+      Displacement x(parameters[6][0], Displacement::Units::Kilometers);
+      Displacement y(parameters[6][1], Displacement::Units::Kilometers);
+      Displacement z(parameters[6][2], Displacement::Units::Kilometers);
+      surfacePoint = SurfacePoint(x, y, z);
+    }
 
-    SurfacePoint surfacePoint(x, y, z);
     if (!m_camera->SetGround(surfacePoint)) {
       // Return false if point is not visible
       return false;
@@ -107,11 +118,17 @@ struct SnavelyReprojectionFunctor {
 
 
 struct SnavelyReprojectionErrorFunctor {
-  SnavelyReprojectionErrorFunctor(double observed_x, double observed_y, Camera *camera, int positionParamSize, int rotationParamSize, double sigma, BundleObservationSolveSettings *settings)
+  SnavelyReprojectionErrorFunctor(double observed_x, 
+                                  double observed_y, 
+                                  Camera *camera, 
+                                  int positionParamSize, 
+                                  int rotationParamSize, 
+                                  double sigma, 
+                                  SurfacePoint::CoordinateType coordType, 
+                                  BundleObservationSolveSettings *settings)
       : m_observed_x(observed_x), m_observed_y(observed_y), m_sigma(sigma) {
-
     auto *cost_function = new ceres::DynamicNumericDiffCostFunction<SnavelyReprojectionFunctor, ceres::CENTRAL>
-          (new SnavelyReprojectionFunctor(camera, sigma, positionParamSize, rotationParamSize, settings));
+          (new SnavelyReprojectionFunctor(camera, positionParamSize, rotationParamSize, coordType, settings));
     for (int j = 0; j < positionParamSize; j++) {
       cost_function->AddParameterBlock(3);
     }
@@ -142,9 +159,17 @@ struct SnavelyReprojectionErrorFunctor {
                       int positionParamSize,
                       int rotationParamSize, 
                       double sigma,
+                      SurfacePoint::CoordinateType coordType,
                       BundleObservationSolveSettings *settings) {
     return new ceres::DynamicNumericDiffCostFunction<SnavelyReprojectionErrorFunctor, ceres::CENTRAL>
-           (new SnavelyReprojectionErrorFunctor(observed_x, observed_y, camera, positionParamSize, rotationParamSize, sigma, settings));
+           (new SnavelyReprojectionErrorFunctor(observed_x, 
+                                                observed_y, 
+                                                camera, 
+                                                positionParamSize, 
+                                                rotationParamSize, 
+                                                sigma, 
+                                                coordType,
+                                                settings));
   }
 
   double m_observed_x;

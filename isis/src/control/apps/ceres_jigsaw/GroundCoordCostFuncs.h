@@ -10,8 +10,8 @@
 
 #include "IException.h"
 
-struct XYZError {
-  XYZError(std::vector<double> const& observation, std::vector<double> const& sigmas):
+struct GroundError {
+  GroundError(std::vector<double> const& observation, std::vector<double> const& sigmas):
     m_observation(observation), m_sigmas(sigmas) {
       QString msg = "Aborting cost function creation for XYZ point. ";
       bool potentialNaN = false;
@@ -45,8 +45,8 @@ struct XYZError {
   // the client code.
   static ceres::CostFunction* Create(const std::vector<double> & observation,
                                      const std::vector<double> & sigmas) {
-    return (new ceres::AutoDiffCostFunction<XYZError, 3, 3>
-            (new XYZError(observation, sigmas)));
+    return (new ceres::AutoDiffCostFunction<GroundError, 3, 3>
+            (new GroundError(observation, sigmas)));
   }
 
   std::vector<double> m_observation;

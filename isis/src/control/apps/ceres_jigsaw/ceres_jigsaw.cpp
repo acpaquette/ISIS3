@@ -64,7 +64,7 @@ namespace Isis {
   QList<BundleObservationSolveSettings> ceresObservationSolveSettings(UserInterface &ui);
 
   // 9 potential position coefficients
-  // 9 potentail rotation coefficients
+  // 9 potential rotation coefficients
   // This could change if the user changes the degree of
   // the polynomial to represent rotations/positions
   // const int numParams = 9 + 9;
@@ -119,6 +119,7 @@ namespace Isis {
   };
 
   void ceres_jigsaw(UserInterface &ui, Pvl *log) {
+    std::cout << std::setprecision(15);
     Progress progress;
     QSharedPointer<BundleSettings> settings = ceresBundleSettings(ui);
 
@@ -142,11 +143,22 @@ namespace Isis {
     std::map<QString, double *> originalPolyMap;
     std::vector<CameraParameters> bundleCameraParameters(snList.size());
     // This is set globally for all cameras, there should likely be a way to set this on an individual
-    // camera
+    // camera basis
     std::vector<double> positionSigmas(solveSettings.aprioriPositionSigmas().constBegin(), 
                                        solveSettings.aprioriPositionSigmas().constEnd());
+    if (positionSigmas.size() < positionParamSize) {
+      for (int i = positionSigmas.size(); i < positionParamSize; i++) {
+        positionSigmas.push_back(1);
+      }
+    }
     std::vector<double> rotationSigmas(solveSettings.aprioriPointingSigmas().constBegin(), 
                                        solveSettings.aprioriPointingSigmas().constEnd());
+    if (rotationSigmas.size() < rotationParamSize) {
+      for (int i = rotationSigmas.size(); i < rotationParamSize; i++) {
+        rotationSigmas.push_back(1);
+      }
+    }
+
     for (int i = 0; i < snList.size(); i++) {
       QString serialNumber = snList.serialNumber(i);
       std::cout << serialNumber << std::endl;
@@ -237,9 +249,17 @@ namespace Isis {
       
       SurfacePoint ground = point.rawControlPoint()->GetAprioriSurfacePoint();
       double *groundCoord = new double[3];
-      groundCoord[0] = ground.GetX().kilometers();
-      groundCoord[1] = ground.GetY().kilometers();
-      groundCoord[2] = ground.GetZ().kilometers();
+      SurfacePoint::CoordinateType coordType = settings->controlPointCoordTypeBundle();
+      if (coordType == SurfacePoint::Latitudinal) {
+        groundCoord[0] = ground.GetLatitude().radians();
+        groundCoord[1] = ground.GetLongitude().radians();
+        groundCoord[2] = ground.GetLocalRadius().kilometers();
+      }
+      else {
+        groundCoord[0] = ground.GetX().kilometers();
+        groundCoord[1] = ground.GetY().kilometers();
+        groundCoord[2] = ground.GetZ().kilometers();
+      }
       
       bundleGroundParameters[i] = GroundParameters(groundCoord);
       observedGround[i] = {groundCoord[0], groundCoord[1], groundCoord[2]};
@@ -268,27 +288,82 @@ namespace Isis {
       progress.CheckStatus();
     }
 
-    std::cout << std::setprecision(15);
+
+    std::cout << "INITIAL Polys: \n";
     for ( int i = 0; i < 10; i++) {
-      std::cout << "INITIAL GP: ";
-      std::cout << bundlePointParameters[i].parameters[rotationParamSize + positionParamSize][0] << ", ";
-      std::cout << bundlePointParameters[i].parameters[rotationParamSize + positionParamSize][1] << ", ";
-      std::cout << bundlePointParameters[i].parameters[rotationParamSize + positionParamSize][2] << std::endl;
+      int j = 0;
+      for (;j < positionParamSize; j++) {
+        for (int k = 0; k < 3; k++) {
+          std::cout << bundlePointParameters[i].parameters[j][k] << ", ";
+        }
+      }
+      std::cout << std::endl;
+
+      j = positionParamSize;
+      for (;j < (positionParamSize + rotationParamSize); j++) {
+        for (int k = 0; k < 3; k++) {
+          std::cout << bundlePointParameters[i].parameters[j][k] << ", ";
+        }
+      }
+      std::cout << std::endl;
     }
 
-    ceres::LossFunction* loss_function = new ceres::HuberLoss(1.0);
+    std::cout << "INITIAL GP: \n";
+    for ( int i = 0; i < 10; i++) {
+      std::cout << bundleGroundParameters[i].parameters[0][0] << ", ";
+      std::cout << bundleGroundParameters[i].parameters[0][1] << ", ";
+      std::cout << bundleGroundParameters[i].parameters[0][2] << std::endl;
+    }
+
     ceres::Problem problem;
-    for (int i = 0; i < snList.size(); i++) {
+    progress.SetText("Loading ceres camera polygon cost functions...");
+    int snListSize = snList.size();
+    progress.SetMaximumSteps(snListSize);
+    progress.CheckStatus();
+    for (int i = 0; i < snListSize; i++) {
       auto* cost_function = PositionRotationErrorFunctor::Create(bundleCameraParameters[i].parameters,
                                                                  positionParamSize,
                                                                  rotationParamSize,
                                                                  positionSigmas,
                                                                  rotationSigmas);
-      ceres::LossFunction* loss_function = new ceres::HuberLoss(1.0);
-      problem.AddResidualBlock(cost_function, loss_function, bundleCameraParameters[i].parameters);
+      for (int j = 0; j < positionParamSize; j++) {
+        cost_function->AddParameterBlock(3);
+      }
+      for (int j = 0; j < positionParamSize; j++) {
+        cost_function->AddParameterBlock(3);
+      }
+      cost_function->SetNumResiduals((positionSigmas.size() + rotationSigmas.size()) * 3);
+      problem.AddResidualBlock(cost_function, nullptr, bundleCameraParameters[i].parameters);
+
+      if (solvePosition < BundleObservationSolveSettings::InstrumentPositionSolveOption::PositionVelocityAcceleration) {
+        problem.SetParameterBlockConstant(bundleCameraParameters[i].parameters[2]);
+        if (solvePosition < BundleObservationSolveSettings::InstrumentPositionSolveOption::PositionVelocity) {
+          problem.SetParameterBlockConstant(bundleCameraParameters[i].parameters[1]);
+          if (solvePosition < BundleObservationSolveSettings::InstrumentPositionSolveOption::PositionOnly) {
+            problem.SetParameterBlockConstant(bundleCameraParameters[i].parameters[0]);
+          }
+        }
+      }
+
+      if (solveRotation < BundleObservationSolveSettings::InstrumentPointingSolveOption::AnglesVelocityAcceleration) {
+        problem.SetParameterBlockConstant(bundleCameraParameters[i].parameters[5]);
+        if (solveRotation < BundleObservationSolveSettings::InstrumentPointingSolveOption::AnglesVelocity) {
+          problem.SetParameterBlockConstant(bundleCameraParameters[i].parameters[4]);
+          if (solveRotation < BundleObservationSolveSettings::InstrumentPointingSolveOption::AnglesOnly) {
+            problem.SetParameterBlockConstant(bundleCameraParameters[i].parameters[3]);
+          }
+        }
+      }
+      progress.CheckStatus();
     }
 
-    for (int i = 0; i < network.GetNumValidMeasures(); ++i) {
+    progress.SetText("Loading ceres projection cost functions...");
+    int numValidMeasures = network.GetNumValidMeasures();
+    progress.SetMaximumSteps(numValidMeasures);
+    progress.CheckStatus();
+    ceres::LossFunction* loss_function = new ceres::HuberLoss(1.0);
+    SurfacePoint::CoordinateType coordType = settings->controlPointCoordTypeBundle();
+    for (int i = 0; i < numValidMeasures; ++i) {
       auto* cost_function =
           SnavelyReprojectionErrorFunctor::Create(observedPoints[i][0],
                                                   observedPoints[i][1],
@@ -296,6 +371,7 @@ namespace Isis {
                                                   positionParamSize,
                                                   rotationParamSize,
                                                   measureSigmas[i],
+                                                  coordType,
                                                   &solveSettings);
       for (int j = 0; j < positionParamSize; j++) {
         cost_function->AddParameterBlock(3);
@@ -308,31 +384,38 @@ namespace Isis {
       problem.AddResidualBlock(cost_function,
                                loss_function,
                                bundlePointParameters[i].parameters);
-      if (solvePosition < BundleObservationSolveSettings::InstrumentPositionSolveOption::PositionVelocityAcceleration) {
-        problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[2]);
-        if (solvePosition < BundleObservationSolveSettings::InstrumentPositionSolveOption::PositionVelocity) {
-          problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[1]);
-          if (solvePosition < BundleObservationSolveSettings::InstrumentPositionSolveOption::PositionOnly) {
-            problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[0]);
-          }
-        }
-      }
+      // I'm not sure if we need this if the parameters are constrained in the camera loop
+      // They point to the same set of polynomials
+      // if (solvePosition < BundleObservationSolveSettings::InstrumentPositionSolveOption::PositionVelocityAcceleration) {
+      //   problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[2]);
+      //   if (solvePosition < BundleObservationSolveSettings::InstrumentPositionSolveOption::PositionVelocity) {
+      //     problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[1]);
+      //     if (solvePosition < BundleObservationSolveSettings::InstrumentPositionSolveOption::PositionOnly) {
+      //       problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[0]);
+      //     }
+      //   }
+      // }
 
-      if (solveRotation < BundleObservationSolveSettings::InstrumentPointingSolveOption::AnglesVelocityAcceleration) {
-        problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[5]);
-        if (solveRotation < BundleObservationSolveSettings::InstrumentPointingSolveOption::AnglesVelocity) {
-          problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[4]);
-          if (solveRotation < BundleObservationSolveSettings::InstrumentPointingSolveOption::AnglesOnly) {
-            problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[3]);
-          }
-        }
-      }
+      // if (solveRotation < BundleObservationSolveSettings::InstrumentPointingSolveOption::AnglesVelocityAcceleration) {
+      //   problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[5]);
+      //   if (solveRotation < BundleObservationSolveSettings::InstrumentPointingSolveOption::AnglesVelocity) {
+      //     problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[4]);
+      //     if (solveRotation < BundleObservationSolveSettings::InstrumentPointingSolveOption::AnglesOnly) {
+      //       problem.SetParameterBlockConstant(bundlePointParameters[i].parameters[3]);
+      //     }
+      //   }
+      // }
+      progress.CheckStatus();
     }
 
-    for (int i = 0; i < network.GetNumValidPoints(); i++) {
-      auto* cost_function = XYZError::Create(observedGround[i], groundSigmas[i]);
-      ceres::LossFunction* loss_function = new ceres::HuberLoss(1.0);
-      problem.AddResidualBlock(cost_function, loss_function, bundleGroundParameters[i].parameters);
+    progress.SetText("Loading ceres ground functions...");
+    int numValidPoints = network.GetNumValidPoints();
+    progress.SetMaximumSteps(numValidPoints);
+    progress.CheckStatus();
+    for (int i = 0; i < numValidPoints; i++) {
+      auto* cost_function = GroundError::Create(observedGround[i], groundSigmas[i]);
+      problem.AddResidualBlock(cost_function, nullptr, bundleGroundParameters[i].parameters);
+      progress.CheckStatus();
     }
 
     ceres::Solver::Options options;
@@ -343,12 +426,32 @@ namespace Isis {
     ceres::Solver::Summary summary;
     ceres::Solve(options, &problem, &summary);
     std::cout << summary.FullReport() << "\n";
+    std::cout << "POST Polys: \n";
     for ( int i = 0; i < 10; i++) {
-      std::cout << "POST GP: ";
-      std::cout << bundlePointParameters[i].parameters[rotationParamSize + positionParamSize][0] << ", ";
-      std::cout << bundlePointParameters[i].parameters[rotationParamSize + positionParamSize][1] << ", ";
-      std::cout << bundlePointParameters[i].parameters[rotationParamSize + positionParamSize][2] << std::endl;
+      int j = 0;
+      for (;j < positionParamSize; j++) {
+        for (int k = 0; k < 3; k++) {
+          std::cout << bundleCameraParameters[i].parameters[j][k] << ", ";
+        }
+      }
+      std::cout << std::endl;
+
+      j = positionParamSize;
+      for (;j < (positionParamSize + rotationParamSize); j++) {
+        for (int k = 0; k < 3; k++) {
+          std::cout << bundleCameraParameters[i].parameters[j][k] << ", ";
+        }
+      }
+      std::cout << std::endl;
     }
+
+    std::cout << "POST GP: \n";
+    for ( int i = 0; i < 10; i++) {
+      std::cout << bundleGroundParameters[i].parameters[0][0] << ", ";
+      std::cout << bundleGroundParameters[i].parameters[0][1] << ", ";
+      std::cout << bundleGroundParameters[i].parameters[0][2] << std::endl;
+    }
+
     for (int i = 0; i < snList.size(); i++) {
       QString serialNumber = snList.serialNumber(i);
       QString fileName = snList.fileName(i);
@@ -361,6 +464,7 @@ namespace Isis {
 
       const std::vector<double> originalCoord = originalCamera->instrumentPosition()->GetCenterCoordinate();
       const std::vector<double> originalAngles = originalCamera->instrumentRotation()->GetCenterAngles();
+      std::cout << serialNumber << std::endl;
       std::cout << snList.fileName(serialNumber) << std::endl;
 
       std::cout << originalCoord[0] << ", ";
