@@ -27,6 +27,8 @@ find files of those names at the top level of this repository. **/
 #include "Cube.h"
 #include "IString.h"
 #include "Latitude.h"
+#include "LeastSquares.h"
+#include "LinearAlgebra.h"
 #include "Longitude.h"
 #include "PvlObject.h"
 #include "SerialNumberList.h"
@@ -896,24 +898,29 @@ namespace Isis {
     // TODO (KLE): where should call this go? Also, what's the point? The method has no description.
     PointModified();
 
-    // if point is fixed or constrained, ensure valid a priori point coordinates exist
-    if ( (IsFixed() || IsConstrained()) &&  !aprioriSurfacePoint.Valid() ) {
-      QString msg = "In method ControlPoint::ComputeApriori(). ControlPoint [" + GetId() + "] is ";
-      msg += "fixed or constrained and requires a priori coordinates";
-      throw IException(IException::User, msg, _FILEINFO_);
+    // if point is Fixed or Constrained in any number of coordinates, initialize adjusted surface
+    // point to a priori coordinates (set in e.g. qnet or cneteditor) and exit
+    if( IsFixed() || IsConstrained() || id.contains("Lidar")) {
+      // if point is fixed or constrained, ensure valid a priori point coordinates exist
+      if ( !aprioriSurfacePoint.Valid() ) {
+        QString msg = "In method ControlPoint::ComputeApriori(). ControlPoint [" + GetId() + "] is ";
+        msg += "fixed or constrained and requires a priori coordinates";
+        throw IException(IException::User, msg, _FILEINFO_);
+      }
+      adjustedSurfacePoint = aprioriSurfacePoint;
+      return Success;
     }
 
-    double xB = 0.0;  // body-fixed x
-    double yB = 0.0;  // body-fixed y
-    double zB = 0.0;  // body-fixed z
-    double r2B = 0.0; // radius squared in body-fixed
     int goodMeasures = 0;
-    double pB[3];
+    LinearAlgebra::Matrix I = LinearAlgebra::identity(3);
+    LinearAlgebra::Matrix A = LinearAlgebra::zeroMatrix(3, 3);
+    LinearAlgebra::Vector b(3, 0.0);
+    LinearAlgebra::Vector pB(3, 0.0);
 
     // loop over measures to ...
     // 1) set focal plane x,y coordinates for all unignored measures;
-    // 2) sum latitude, longitude, and radius coordinates in preparation for computing a priori
-    //    coordinates by averaging.
+    // 2) Compute the point of closest approach between the cameras look directions and
+    //    spacecraft position (https://medium.com/data-science/intersect-multiple-3d-lines-closest-point-93e06b296f15)
     for (int i = 0; i < cubeSerials->size(); i++) {
       ControlMeasure *m = GetMeasure(i);
       if (m->IsIgnored()) {
@@ -940,27 +947,17 @@ namespace Isis {
                                  cam->DistortionMap()->UndistortedFocalPlaneY());
       }
 
-      // TODO: Seems like we should be able to skip this computation if point is fixed or
-      // constrained in any coordinate. Currently we are always summing coordinates here. We could
-      // save time by not doing this for fixed or constrained points.
       if (setImageSuccess) {
         goodMeasures++;
-        cam->Coordinate(pB);
-        xB += pB[0];
-        yB += pB[1];
-        zB += pB[2];
-        r2B += pB[0]*pB[0] + pB[1]*pB[1] + pB[2]*pB[2];
+        cam->instrumentBodyFixedPosition(pB.data().begin());
+        std::vector<double> stdVeclookDir = cam->lookDirectionBodyFixed();
+        LinearAlgebra::Vector lookDir(3, 0.0);
+        std::copy(stdVeclookDir.begin(), stdVeclookDir.end(), lookDir.begin());
+        LinearAlgebra::Matrix projMatrix = I - LinearAlgebra::outerProduct(lookDir, lookDir);
+        A += projMatrix;
+        b += LinearAlgebra::multiply(projMatrix, pB);
       }
     }
-
-    // if point is Fixed or Constrained in any number of coordinates, initialize adjusted surface
-    // point to a priori coordinates (set in e.g. qnet or cneteditor) and exit
-    if( IsFixed() || IsConstrained() || id.contains("Lidar")) {
-      adjustedSurfacePoint = aprioriSurfacePoint;
-      return Success;
-    }
-
-    // if point is Free, we continue to compute a priori coordinates
 
     // if no good measures, we're done
     // TODO: is the message true/meaningful?
@@ -970,21 +967,12 @@ namespace Isis {
       throw IException(IException::User, msg, _FILEINFO_);
     }
 
-    // Compute the averages if all coordinates are free
-    // TODO: confirm if this "if" statement is necessary
-    if (GetType() == Free || NumberOfConstrainedCoordinates() == 0) {
-      double avgX = xB / goodMeasures;
-      double avgY = yB / goodMeasures;
-      double avgZ = zB / goodMeasures;
-      double avgR2 = r2B / goodMeasures;
-      double scale = sqrt(avgR2/(avgX*avgX+avgY*avgY+avgZ*avgZ));
-
-      aprioriSurfacePoint.SetRectangular(
-        Displacement((avgX*scale), Displacement::Kilometers),
-        Displacement((avgY*scale), Displacement::Kilometers),
-        Displacement((avgZ*scale), Displacement::Kilometers));
-    }
-
+    LinearAlgebra::Vector coord = LinearAlgebra::multiply(LinearAlgebra::inverse(A), b);
+    aprioriSurfacePoint.SetRectangular(
+      Displacement(coord[0], Displacement::Kilometers),
+      Displacement(coord[1], Displacement::Kilometers),
+      Displacement(coord[2], Displacement::Kilometers));
+    
     adjustedSurfacePoint = aprioriSurfacePoint;
     SetAprioriSurfacePointSource(SurfacePointSource::AverageOfMeasures);
     SetAprioriRadiusSource(RadiusSource::AverageOfMeasures);
