@@ -35,7 +35,7 @@ struct PositionRotationErrorFunctor {
         // Assume 3 (X, Y, Z) based on the ISIS camera polynomials
         for (size_t j = 0; j < 3; j++) {
             size_t idx = (i * 3) + j;
-            residuals[idx] = (cameraPolynomials[i][j] - m_originalPolynomials[i][j])/m_positionWeights[i];
+            residuals[idx] = (cameraPolynomials[i][j] - m_originalPolynomials[i][j]) * m_positionWeights[i];
         }
     }
 
@@ -44,7 +44,7 @@ struct PositionRotationErrorFunctor {
         for (size_t j = 0; j < 3; j++) {
             size_t polyIdx = i + m_positionParamSize;
             size_t resIdx = (polyIdx * 3) + j;
-            residuals[resIdx] = (cameraPolynomials[polyIdx][j] - m_originalPolynomials[polyIdx][j])/m_rotationWeights[i];
+            residuals[resIdx] = (cameraPolynomials[polyIdx][j] - m_originalPolynomials[polyIdx][j]) * m_rotationWeights[i];
         }
     }
 

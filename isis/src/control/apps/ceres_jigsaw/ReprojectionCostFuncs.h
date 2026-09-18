@@ -94,7 +94,7 @@ struct SnavelyReprojectionFunctor {
     if (m_coordType == SurfacePoint::Latitudinal) {
       Latitude lat(parameters[6][0], Angle::Units::Radians);
       Longitude lon(parameters[6][1], Angle::Units::Radians);
-      Distance radius(parameters[6][2], Displacement::Units::Kilometers);
+      Distance radius(parameters[6][2], Distance::Units::Kilometers);
       surfacePoint = SurfacePoint(lat, lon, radius);
     }
     else {
@@ -123,10 +123,10 @@ struct SnavelyReprojectionErrorFunctor {
                                   Camera *camera, 
                                   int positionParamSize, 
                                   int rotationParamSize, 
-                                  double sigma, 
+                                  double weight, 
                                   SurfacePoint::CoordinateType coordType, 
                                   BundleObservationSolveSettings *settings)
-      : m_observed_x(observed_x), m_observed_y(observed_y), m_sigma(sigma) {
+      : m_observed_x(observed_x), m_observed_y(observed_y), m_weight(weight) {
     auto *cost_function = new ceres::DynamicNumericDiffCostFunction<SnavelyReprojectionFunctor, ceres::CENTRAL>
           (new SnavelyReprojectionFunctor(camera, positionParamSize, rotationParamSize, coordType, settings));
     for (int j = 0; j < positionParamSize; j++) {
@@ -146,8 +146,8 @@ struct SnavelyReprojectionErrorFunctor {
     T computed[2];
     (*compute_point)(parameters, computed);
     // ISIS uses the same sigma for X, and Y residuals. Should we do that here?
-    residuals[0] = (m_observed_x - computed[0]) / m_sigma;
-    residuals[1] = (m_observed_y - computed[1]) / m_sigma;
+    residuals[0] = (m_observed_x - computed[0]) * m_weight;
+    residuals[1] = (m_observed_y - computed[1]) * m_weight;
     return true;
   }
 
@@ -158,7 +158,7 @@ struct SnavelyReprojectionErrorFunctor {
                       Camera *camera,
                       int positionParamSize,
                       int rotationParamSize, 
-                      double sigma,
+                      double weight,
                       SurfacePoint::CoordinateType coordType,
                       BundleObservationSolveSettings *settings) {
     return new ceres::DynamicNumericDiffCostFunction<SnavelyReprojectionErrorFunctor, ceres::CENTRAL>
@@ -167,14 +167,14 @@ struct SnavelyReprojectionErrorFunctor {
                                                 camera, 
                                                 positionParamSize, 
                                                 rotationParamSize, 
-                                                sigma, 
+                                                weight, 
                                                 coordType,
                                                 settings));
   }
 
   double m_observed_x;
   double m_observed_y;
-  double m_sigma;
+  double m_weight;
   std::unique_ptr<ceres::DynamicCostFunctionToFunctor> compute_point;
 };
 
