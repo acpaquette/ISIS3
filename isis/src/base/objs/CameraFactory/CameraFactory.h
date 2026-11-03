@@ -60,7 +60,7 @@ namespace Isis {
       static void updateLabelForCsm(Cube &cube, csm::Model *model);
       static void writeAdjustedCsmState(const QString &cubeFile, const QString &state, const QString &prefix = "");
       static csm::Model *constructModelFromIsd(QString isdFilePath, QString pluginName = "", QString modelName = "", QString isdFormat = "");
-      static csm::Model *constructModelFromState(QString isdFilePath, QString pluginName = "", QString modelName = "");
+      static csm::Model *constructModelFromState(QString isdFilePath, QString pluginName = "");
       static QStringList getModelSpecFromIsd(QString isdFilePath, QString pluginName = "", QString modelName = "");
       static QStringList getModelSpecFromState(QString isdFilePath, QString pluginName = "", QString modelName = "");
 
