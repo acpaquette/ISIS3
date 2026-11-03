@@ -89,7 +89,7 @@ namespace Isis {
    */
   void CameraPointInfo::SetCube(const QString &cubeFileName, const QString &csmFileName) {
     m_currentCube = m_usedCubes->OpenCube(cubeFileName);
-    Camera *cam = CameraFactory::CreateFromIsd(csmFileName, *m_currentCube);
+    Camera *cam = CameraFactory::CreateCsmCamera(csmFileName, *m_currentCube);
     m_currentCube->setCamera(cam);
     m_camera = cam;
   }
