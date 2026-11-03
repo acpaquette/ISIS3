@@ -404,6 +404,66 @@ namespace Isis {
     SetEphemerisTime(p_cacheTime[0]);
   }
 
+  /**
+   * Load the cached data from an ALE ISD.
+   *
+   * The SpicePosition object must be set to a SPICE source before loading the
+   * cache.
+   *
+   * @param isdPos The ALE ISD as a JSON object.
+   *
+   */
+  void SpicePosition::LoadCache(std::vector<double> positions, 
+                                std::vector<double> velocities, 
+                                std::vector<double> times) {
+    if (p_source != Spice) {
+        throw IException(IException::Programmer, "SpicePosition::LoadCache(json) only supports Spice source", _FILEINFO_);
+    }
+
+    // Load the full cache time information from the label if available
+    p_fullCacheStartTime = times[0];
+    p_fullCacheEndTime = times[times.size() - 1];
+    p_fullCacheSize = times.size();
+    p_cacheTime = times;
+
+    p_hasVelocity = velocities.size() != 0;
+
+    std::vector<ale::State> stateCache(positions.size()/3);
+    if (p_hasVelocity) {
+      size_t posIdx = 0;
+      std::vector<double> pos(3, 0.0);
+      std::vector<double> vel(3, 0.0);
+      for (size_t i = 0; i < stateCache.size(); i++) {
+        pos[0] = positions[posIdx];
+        vel[0] = velocities[posIdx++];
+        pos[1] = positions[posIdx];
+        vel[1] = velocities[posIdx++];
+        pos[2] = positions[posIdx];
+        vel[2] = velocities[posIdx++];
+        stateCache[i] = ale::State(ale::Vec3d(pos), ale::Vec3d(vel));
+      }
+    }
+    else {
+      size_t posIdx = 0;
+      std::vector<double> pos(3, 0.0);
+      for (size_t i = 0; i < stateCache.size(); i++) {
+        pos[0] = positions[posIdx++];
+        pos[1] = positions[posIdx++];
+        pos[2] = positions[posIdx++];
+        stateCache[i] = ale::State(ale::Vec3d(pos));
+      }
+    }
+
+    if (m_state != NULL) {
+      delete m_state;
+    }
+
+    m_state = new ale::States(p_cacheTime, stateCache);
+
+    p_source = Memcache;
+    SetEphemerisTime(p_cacheTime[0]);
+  }
+
   /** Cache J2000 positions using a table file.
    *
    * This method will load an internal cache with coordinates from an

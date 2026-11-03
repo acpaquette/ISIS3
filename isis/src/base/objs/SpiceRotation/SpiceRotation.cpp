@@ -523,6 +523,64 @@ namespace Isis {
     SetEphemerisTime(p_cacheTime[0]);
   }
 
+  void SpiceRotation::LoadCache(const std::vector<double> &quaternions,
+                                const std::vector<double> &angularVelocities,
+                                const std::vector<double> &times) {
+    if (p_source != Spice) {
+        throw IException(IException::Programmer, "SpiceRotation::LoadCache(json) only supports Spice source", _FILEINFO_);
+    }
+
+    p_timeFrames.clear();
+    p_TC.clear();
+    p_cacheTime.clear();
+    p_hasAngularVelocity = false;
+    m_frameType = CK;
+
+    if (m_orientation) {
+      delete m_orientation;
+      m_orientation = NULL;
+    }
+
+    p_fullCacheStartTime = times[0];
+    p_fullCacheEndTime = times[times.size() - 1];
+    p_fullCacheSize = times.size();
+    p_cacheTime = times;
+    p_timeFrames = {};
+
+    std::vector<ale::Rotation> rotationCache(quaternions.size()/4);
+    int quatIdx = 0;
+    for (size_t i = 0; i < rotationCache.size(); i++) {
+      std::vector<double> quat(4, 0.0);
+      quat[0] = quaternions[quatIdx++];
+      quat[1] = quaternions[quatIdx++];
+      quat[2] = quaternions[quatIdx++];
+      quat[3] = quaternions[quatIdx++];
+      Quaternion q(quat);
+      std::vector<double> CJ = q.ToMatrix();
+      rotationCache[i] = ale::Rotation(CJ);
+    }
+
+    std::vector<ale::Vec3d> avCache(angularVelocities.size()/3);
+    if (angularVelocities.size() != 0) {
+      int avIdx = 0;
+      for (size_t i = 0; i < avCache.size(); i++) {
+        std::vector<double> av(3, 0.0);
+        av[0] = angularVelocities[avIdx++];
+        av[1] = angularVelocities[avIdx++];
+        av[2] = angularVelocities[avIdx++];
+        avCache[i] = ale::Vec3d(av);
+      }
+      p_hasAngularVelocity = true;
+    }
+
+    p_TC.resize(9);
+    ident_c((SpiceDouble( *)[3]) &p_TC[0]);
+    m_orientation = new ale::Orientations(rotationCache, p_cacheTime, avCache,
+                                          ale::Rotation(1,0,0,0), p_constantFrames, p_timeFrames);
+
+    p_source = Memcache;
+    SetEphemerisTime(p_cacheTime[0]);
+  }  
 
   /**
    * Cache J2000 rotations using a table file.

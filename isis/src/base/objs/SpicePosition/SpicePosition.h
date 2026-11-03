@@ -229,6 +229,9 @@ namespace Isis {
       void LoadCache(double time);
       void LoadCache(Table &table);
       void LoadCache(nlohmann::json &isd);
+      void LoadCache(std::vector<double> positions, 
+                     std::vector<double> velocities, 
+                     std::vector<double> times);
 
       Table LineCache(const QString &tableName);
       Table LoadHermiteCache(const QString &tableName);

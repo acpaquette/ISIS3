@@ -335,6 +335,10 @@ namespace Isis {
 
       void LoadCache(nlohmann::json &isd);
 
+      void LoadCache(const std::vector<double> &quaternions,
+                     const std::vector<double> &angularVelocities,
+                     const std::vector<double> &times);
+
       Table LineCache(const QString &tableName);
 
       void ReloadCache();
