@@ -28,9 +28,8 @@ namespace Isis {
       // constructors
       CSMCamera(Cube &cube);
       CSMCamera(Cube &cube, QString pluginName, QString modelName, QString stateString);
-      CSMCamera(Cube &cube, csm::RasterGM *model);
 
-      ~CSMCamera() {};
+      virtual ~CSMCamera();
 
 
       /**
@@ -100,6 +99,7 @@ namespace Isis {
       virtual void subSpacecraftPoint(double &lat, double &lon);
       virtual void subSpacecraftPoint(double &lat, double &lon, double line, double sample);
       virtual void subSolarPoint(double &lat, double &lon);
+      virtual Longitude solarLongitude();
 
       virtual double PhaseAngle() const;
       virtual double EmissionAngle() const;
@@ -111,8 +111,6 @@ namespace Isis {
       virtual SpiceRotation *instrumentRotation() const;
 
       virtual void instrumentBodyFixedPosition(double p[3]) const;
-      virtual void sunPosition(double p[3]) const;
-      virtual double SolarDistance() const;
 
       virtual double SlantDistance() const;
       virtual double targetCenterDistance() const;
@@ -141,11 +139,8 @@ namespace Isis {
       std::vector<double> sensorPositionBodyFixed() const;
       std::vector<double> sensorPositionBodyFixed(double line, double sample) const;
 
-      virtual void computeSolarLongitude(iTime et);
-
     private:
       void init(Cube &cube, QString pluginName, QString modelName, QString stateString);
-      void initFromModel(Cube &cube);
 
       // Not owned. Cannot be freed because test mocks pass stack-allocated
       // objects via constructModelFromState(). A proper fix would require
@@ -160,6 +155,12 @@ namespace Isis {
 
       virtual std::vector<double> ImagePartials(SurfacePoint groundPoint);
       virtual std::vector<double> ImagePartials();
+
+
+      SpicePosition *m_instrumentPosition; //!< Instrument spice position
+      SpiceRotation *m_instrumentRotation; //!< Instrument spice rotation
+      SpicePosition *m_sunPosition; //!< Sun spice position
+      SpiceRotation *m_bodyRotation; //!< Body spice rotation
   };
 };
 #endif

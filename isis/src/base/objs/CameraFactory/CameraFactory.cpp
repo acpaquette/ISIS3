@@ -232,9 +232,35 @@ namespace Isis {
    *
    * @return Camera* The CSMCamera object created.
    */
-  Camera *CameraFactory::CreateFromIsd(const QString &isdFile, Cube &cube) {
+  Camera *CameraFactory::CreateCsmCamera(const QString &modelFile, Cube &cube) {
     // This raw pointer is not managed. Pre-existing issue.
-    csm::Model *model = constructModelFromIsdOrState(isdFile);
+    csm::Model *model = nullptr;
+    QString pluginName = "";
+    QString modelName = "";
+    try {
+      model = constructModelFromIsd(modelFile, pluginName, modelName);
+    }
+    catch (IException &e) {
+      model = nullptr;
+      pluginName = "";
+      modelName = "";
+    }
+
+    if (model != nullptr) {
+      try {
+        model = constructModelFromState(modelFile, pluginName, modelName);
+      }
+      catch (IException &e) {
+        model = nullptr;
+        pluginName = "";
+        modelName = "";
+      }
+    }
+
+    if (model != nullptr) {
+      QString msg = "Unable to construct CSMCamera from [" + modelFile + "]";
+      throw IException(IException::Programmer, msg, _FILEINFO_);
+    }
 
     updateLabelForCsm(cube, model);
 
@@ -242,10 +268,12 @@ namespace Isis {
     csm::RasterGM *rasterModel = dynamic_cast<csm::RasterGM*>(model);
     if (!rasterModel) {
       delete model;
-      QString msg = "CSM model from [" + isdFile + "] is not a RasterGM.";
+      QString msg = "CSM model from [" + modelFile + "] is not a RasterGM.";
       throw IException(IException::Programmer, msg, _FILEINFO_);
     }
-    return new CSMCamera(cube, rasterModel);
+    QString stateString = QString::fromStdString(model->getModelState());
+    delete model;
+    return new CSMCamera(cube, pluginName, modelName, stateString);
   }
 
 
@@ -321,53 +349,6 @@ namespace Isis {
     outFile.close();
   }
 
-
-  /**
-   * Construct a CSM model from either an ISD or a model state file.
-   * Tries the ISD path first (canModelBeConstructedFromISD), then
-   * falls back to the state path (canModelBeConstructedFromState).
-   * Follows the same plugin iteration logic as csminit.
-   *
-   * @param filePath Path to the ISD or model state file.
-   *
-   * @return csm::Model* The constructed CSM model (caller owns).
-   */
-  csm::Model *CameraFactory::constructModelFromIsdOrState(
-      const QString &filePath) {
-    initPlugin();
-
-    // Try ISD path first
-    csm::Isd isd(filePath.toStdString());
-    for (const csm::Plugin *plugin : csm::Plugin::getList())
-      for (size_t j = 0; j < plugin->getNumModels(); j++) {
-        std::string modelName = plugin->getModelName(j);
-        if (plugin->canModelBeConstructedFromISD(isd, modelName))
-          return plugin->constructModelFromISD(isd, modelName);
-      }
-
-    // ISD path failed. Try interpreting the file as a model state string.
-    std::ifstream stateFile(filePath.toStdString());
-    if (!stateFile.is_open()) {
-      QString msg = "Unable to open CSM file [" + filePath + "].";
-      throw IException(IException::User, msg, _FILEINFO_);
-    }
-    std::stringstream buffer;
-    buffer << stateFile.rdbuf();
-    std::string content = buffer.str();
-
-    for (const csm::Plugin *plugin : csm::Plugin::getList())
-      for (size_t j = 0; j < plugin->getNumModels(); j++) {
-        std::string modelName = plugin->getModelName(j);
-        if (plugin->canModelBeConstructedFromState(modelName, content))
-          return plugin->constructModelFromState(content);
-      }
-
-    QString msg = "No loaded CSM plugin could construct a model from [" +
-      filePath + "].";
-    throw IException(IException::User, msg, _FILEINFO_);
-  }
-
-
    /**
    * Constructs CSM Model from ISD.
    *
@@ -408,6 +389,44 @@ namespace Isis {
       throw IException(IException::Programmer, message, _FILEINFO_);
     }
 
+    return model;
+  }
+
+   /**
+   * Constructs CSM Model from ISD.
+   *
+   * @param isdFilePath Path to ISD file
+   * @param pluginName Plugin name
+   * @param modelName Model name
+   * @param isdFormat ISD format type (e.g., NITF)
+   *
+   */
+  csm::Model *CameraFactory::constructModelFromState(QString stateFilePath, QString pluginName, QString modelName) {
+    // Get model spec if any of these params are not passed in
+    if (pluginName.isEmpty()) {
+      QStringList modelSpec = getModelSpecFromState(stateFilePath);
+      pluginName = modelSpec[0];
+      modelName = modelSpec[0];
+    }
+
+    std::ifstream stateFile(stateFilePath.toStdString());
+    if (!stateFile.is_open()) {
+      QString msg = "Unable to open CSM file [" + stateFilePath + "].";
+      throw IException(IException::User, msg, _FILEINFO_);
+    }
+    std::stringstream buffer;
+    buffer << stateFile.rdbuf();
+    std::string stateFileContent = buffer.str();
+
+    csm::Model *model = nullptr;
+
+    const csm::Plugin *plugin = csm::Plugin::findPlugin(pluginName.toStdString());
+    if (plugin == NULL) {
+      QString message = "Cannot find requested Plugin: [" + pluginName + "].";
+      throw IException(IException::User, message, _FILEINFO_);
+    }
+
+    model = plugin->constructModelFromState(stateFileContent);
     return model;
   }
 
@@ -485,6 +504,84 @@ namespace Isis {
     if (modelSpec.size() != 3) {
       QString message = "Model specification [" + modelSpec.join(" ") + "] has [" + QString::number(modelSpec.size()) + "] elements "
         "when it should have 3 elements.";
+      throw IException(IException::Programmer, message, _FILEINFO_);
+    }
+
+    return modelSpec;
+  }
+
+  /**
+   * Generate CSM Model specs from state. 
+   * 
+   * @param stateFilePath Path to state file
+   * @param pluginName Plugin name
+   * @param modelName Model name
+   */
+  QStringList CameraFactory::getModelSpecFromState(QString stateFilePath, QString pluginName, QString modelName) {
+    QList<QStringList> possibleModels;
+
+    std::ifstream stateFile(stateFilePath.toStdString());
+    if (!stateFile.is_open()) {
+      QString msg = "Unable to open CSM file [" + stateFilePath + "].";
+      throw IException(IException::User, msg, _FILEINFO_);
+    }
+    std::stringstream buffer;
+    buffer << stateFile.rdbuf();
+    std::string stateFileContent = buffer.str();
+
+    for (const csm::Plugin * plugin : csm::Plugin::getList()) {
+      QString currentPluginName = QString::fromStdString(plugin->getPluginName());
+
+      if (!pluginName.isEmpty() && pluginName != pluginName) {
+        continue;
+      }
+
+      for (size_t modelIndex = 0; modelIndex < plugin->getNumModels(); modelIndex++) {
+        QString currentModelName = QString::fromStdString(plugin->getModelName(modelIndex));
+
+        if (!modelName.isEmpty() && currentModelName != modelName) {
+          continue;
+        }
+
+        if (plugin->canModelBeConstructedFromState(currentModelName.toStdString(), stateFileContent)) {
+          QStringList modelSpec = {
+              currentPluginName,
+              currentModelName};
+          possibleModels.append(modelSpec);
+          continue; // If the file ISD works, don't check the other ISD formats
+        }
+      }
+    }
+
+    if (possibleModels.size() > 1) {
+      QString message = "Multiple models can be created from the ISD [" + stateFilePath + "]. "
+                        "Re-run with the PLUGINNAME and MODELNAME parameters. "
+                        "Possible plugin & model names:\n";
+      for (const QStringList &modelSpec : possibleModels) {
+        message += "Plugin [" + modelSpec[0] + "], Model [" + modelSpec[1] + "]\n";
+      }
+      throw IException(IException::User, message, _FILEINFO_);
+    }
+
+    if (possibleModels.empty()) {
+      QString message = "No loaded model could be created from the ISD [" + stateFilePath + "]."
+                        "Loaded plugin & model names:\n";
+      for (const csm::Plugin * plugin : csm::Plugin::getList()) {
+        QString currentPluginName = QString::fromStdString(plugin->getPluginName());
+        for (size_t modelIndex = 0; modelIndex < plugin->getNumModels(); modelIndex++) {
+          QString modelName = QString::fromStdString(plugin->getModelName(modelIndex));
+          message += "Plugin [" + currentPluginName + "], Model [" + modelName + "]\n";
+        }
+      }
+      throw IException(IException::User, message, _FILEINFO_);
+    }
+
+    // If we are here, then we have exactly 1 model
+    QStringList modelSpec = possibleModels.front();
+
+    if (modelSpec.size() != 2) {
+      QString message = "Model specification [" + modelSpec.join(" ") + "] has [" + QString::number(modelSpec.size()) + "] elements "
+        "when it should have 2 elements.";
       throw IException(IException::Programmer, message, _FILEINFO_);
     }
 

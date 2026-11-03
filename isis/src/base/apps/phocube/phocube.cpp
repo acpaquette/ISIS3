@@ -57,7 +57,7 @@ namespace Isis {
     // camera attached to the input cube; the cube does not need to be run
     // through spiceinit in this mode.
     if (ui.WasEntered("CSM")) {
-      Camera *cam = CameraFactory::CreateFromIsd(ui.GetFileName("CSM"), icube);
+      Camera *cam = CameraFactory::CreateCsmCamera(ui.GetFileName("CSM"), icube);
       icube.setCamera(cam);
     }
 

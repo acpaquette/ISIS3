@@ -30,17 +30,21 @@ find files of those names at the top level of this repository. **/
 #include "Latitude.h"
 #include "Longitude.h"
 #include "LinearAlgebra.h"
+#include "MathUtils.h"
 #include "NaifStatus.h"
+#include "Preference.h"
 #include "SpecialPixel.h"
 #include "SurfacePoint.h"
-#include "Table.h"
 #include "SensorUtilities.h"
+#include "Table.h"
 
 #include "csm/Warning.h"
 #include "csm/Error.h"
 #include "csm/Plugin.h"
 #include "csm/Ellipsoid.h"
 #include "csm/SettableEllipsoid.h"
+
+#include "spiceql.h"
 
 #include <nlohmann/json.hpp>
 using json = nlohmann::json;
@@ -85,23 +89,22 @@ void sanitize(std::string &input);
     init(cube, pluginName, modelName, stateString);
   }
 
-
-  /**
-   * Construct a CSMCamera from an already-constructed CSM model. The model
-   * pointer is left unmanaged (pre-existing issue).
-   * This avoids the model->state->model round-trip in CreateFromIsd.
-   *
-   * @param cube The cube with the image data
-   * @param model The CSM RasterGM model
-   */
-  CSMCamera::CSMCamera(Cube &cube, csm::RasterGM *model) : Camera(cube) {
-    if (!model) {
-      QString msg = "Null CSM model pointer passed to CSMCamera for image ["
-                    + cube.fileName() + "].";
-      throw IException(IException::Programmer, msg, _FILEINFO_);
+  CSMCamera::~CSMCamera() {
+    if (m_sunPosition) {
+      delete m_sunPosition;
     }
-    m_model = model;
-    initFromModel(cube);
+
+    if (m_instrumentPosition) {
+      delete m_instrumentPosition;
+    }
+
+    if (m_instrumentRotation) {
+      delete m_instrumentRotation;
+    }
+
+    if (m_bodyRotation) {
+      delete m_bodyRotation;
+    }
   }
 
 
@@ -137,17 +140,132 @@ void sanitize(std::string &input);
       QString msg = "Failed to convert CSM Model to RasterGM.";
       throw IException(IException::Programmer, msg, _FILEINFO_);
     }
-    initFromModel(cube);
-  }
+    m_instrumentPosition = nullptr;
+    m_instrumentRotation = nullptr;
+    m_sunPosition = nullptr;
+    m_bodyRotation = nullptr;
+  
+    json stateJson = stateAsJson(stateString.toStdString());
 
+    std::vector<double> quaternions ;
+    std::vector<double> angularVelocities;
+    std::vector<double> times;
 
-  /**
-   * Set up CSMCamera metadata from an already-assigned m_model.
-   * Extracts sensor/platform names, reference time, and target.
-   *
-   * @param cube The cube with the image data (for target setup)
-   */
-  void CSMCamera::initFromModel(Cube &cube) {
+    if (stateJson.contains("m_targetQuaternions") || stateJson.contains("m_targetQuaternion")) {
+      m_bodyRotation = new SpiceRotation(1);
+      if (stateJson["m_modelName"] != "USGS_ASTRO_FRAME_SENSOR_MODEL") {
+        quaternions = stateJson["m_targetQuaternions"].get<std::vector<double>>();
+        angularVelocities = stateJson["m_targetAngularVelocities"].get<std::vector<double>>();
+        times.resize(quaternions.size()/4, 0.0);
+        double t0 = stateJson["m_t0TargetQuat"];
+        double stepSize = stateJson["m_dtTargetQuat"];
+        double centerTime = stateJson["m_centerEphemerisTime"];
+        for (size_t i = 0; i < times.size(); i++) {
+          times[i] = centerTime + t0 + i * stepSize;
+        }
+      }
+      else {
+        double time = stateJson["m_ephemerisTime"];
+        times.resize(1, time);
+        quaternions = stateJson["m_targetQuaternion"].get<std::vector<double>>();
+        angularVelocities = stateJson["m_targetAngularVelocity"].get<std::vector<double>>();
+      }
+      m_bodyRotation->LoadCache(quaternions, angularVelocities, times);
+    }
+
+    quaternions.clear();
+    angularVelocities.clear();
+    times.clear();
+
+    // Check for m_sensorQuaternions for everything but the framer
+    // Check for m_angularVelocity for the framer since every model/json will have 
+    // m_currentParameterValue
+    if (stateJson.contains("m_sensorQuaternions") || stateJson.contains("m_angularVelocity")) {
+      m_instrumentRotation = new SpiceRotation(1);
+      if (stateJson["m_modelName"] != "USGS_ASTRO_FRAME_SENSOR_MODEL") {
+        quaternions = stateJson["m_sensorQuaternions"].get<std::vector<double>>();
+        angularVelocities = stateJson["m_sensorAngularVelocities"].get<std::vector<double>>();
+        times.resize(quaternions.size()/4, 0.0);
+        double t0 = stateJson["m_t0SensorQuat"];
+        double stepSize = stateJson["m_dtSensorQuat"];
+        double centerTime = stateJson["m_centerEphemerisTime"];
+        for (size_t i = 0; i < times.size(); i++) {
+          times[i] = centerTime + t0 + i * stepSize;
+        }
+      }
+      else {
+        quaternions.resize(4, 0);
+        std::vector<double> params = stateJson["m_currentParameterValue"].get<std::vector<double>>();
+        quaternions[0] = params[3];
+        quaternions[1] = params[4];
+        quaternions[2] = params[5];
+        quaternions[3] = params[6];
+        angularVelocities = stateJson["m_angularVelocity"].get<std::vector<double>>();
+        double time = stateJson["m_ephemerisTime"];
+        times.resize(1, time);
+      }
+      m_instrumentRotation->LoadCache(quaternions, angularVelocities, times);
+    }
+
+    // If we loaded the body rotation, then try to load the sun table
+    if (m_bodyRotation != nullptr) {
+      std::vector<double> sunPosition = stateJson["m_sunPosition"].get<std::vector<double>>();
+      std::vector<double> sunVelocity = stateJson["m_sunVelocity"].get<std::vector<double>>();
+      m_sunPosition = new SpicePosition(10, 10);
+      if (stateJson["m_modelName"] != "USGS_ASTRO_FRAME_SENSOR_MODEL") {
+        times.resize(2, 0.0);
+        double centerTime = stateJson["m_centerEphemerisTime"];
+        double t0 = stateJson["m_t0Ephem"];
+        double stepSize = stateJson["m_dtEphem"];
+        times[0] = centerTime + t0;
+        times[1] = centerTime + t0 + ((sunPosition.size()/3) - 1) * stepSize;
+        std::vector<double> reducedSunPosition(6, 0.0);
+        std::vector<double> reducedSunVelocity(6, 0.0);
+        m_bodyRotation->SetEphemerisTime(times[0]);
+        std::vector<double> state = {sunPosition[0]/1000, sunPosition[1]/1000, sunPosition[2]/1000, 
+                                    sunVelocity[0]/1000, sunVelocity[1]/1000, sunVelocity[2]/1000};
+        state = m_bodyRotation->J2000Vector(state);
+        reducedSunPosition[0] = state[0];
+        reducedSunPosition[1] = state[1];
+        reducedSunPosition[2] = state[2];
+        reducedSunVelocity[0] = state[3];
+        reducedSunVelocity[1] = state[4];
+        reducedSunVelocity[2] = state[5];
+        m_bodyRotation->SetEphemerisTime(times[1]);
+        int sunIdx = sunPosition.size() - 3;
+        state = {sunPosition[sunIdx]/1000, sunPosition[sunIdx + 1]/1000, sunPosition[sunIdx + 2]/1000, 
+                sunVelocity[sunIdx]/1000, sunVelocity[sunIdx + 1]/1000, sunVelocity[sunIdx + 2]/1000};
+        state = m_bodyRotation->J2000Vector(state);
+        reducedSunPosition[3] = state[0];
+        reducedSunPosition[4] = state[1];
+        reducedSunPosition[5] = state[2];
+        reducedSunVelocity[3] = state[3];
+        reducedSunVelocity[4] = state[4];
+        reducedSunVelocity[5] = state[5];
+        sunPosition = reducedSunPosition;
+        sunVelocity = reducedSunVelocity;
+      }
+      else {
+        double time = stateJson["m_ephemerisTime"];
+        times.resize(1, time);
+        std::vector<double> reducedSunPosition(3, 0.0);
+        std::vector<double> reducedSunVelocity(3, 0.0);
+        m_bodyRotation->SetEphemerisTime(times[0]);
+        std::vector<double> state = {sunPosition[0]/1000, sunPosition[1]/1000, sunPosition[2]/1000, 
+                                    sunVelocity[0]/1000, sunVelocity[1]/1000, sunVelocity[2]/1000};
+        state = m_bodyRotation->J2000Vector(state);
+        reducedSunPosition[0] = state[0];
+        reducedSunPosition[1] = state[1];
+        reducedSunPosition[2] = state[2];
+        reducedSunVelocity[0] = state[3];
+        reducedSunVelocity[1] = state[4];
+        reducedSunVelocity[2] = state[5];
+        sunPosition = reducedSunPosition;
+        sunVelocity = reducedSunVelocity;
+      }
+      m_sunPosition->LoadCache(sunPosition, sunVelocity, times);
+    }
+
     m_instrumentNameLong = QString::fromStdString(m_model->getSensorIdentifier());
     m_instrumentNameShort = QString::fromStdString(m_model->getSensorIdentifier());
     m_spacecraftNameLong = QString::fromStdString(m_model->getPlatformIdentifier());
@@ -231,6 +349,8 @@ void sanitize(std::string &input);
     if(!target()->shape()->intersectSurface(obsPosition, locusVec)) {
       return false;
     }
+
+    setTime(*m_et);
 
     p_pointComputed = true;
     return true;
@@ -467,6 +587,7 @@ void sanitize(std::string &input);
         m_et = new iTime();
       }
       *m_et = m_refTime + m_model->getImageTime(imagePt);
+      setTime(*m_et);
       return true;
     }
 
@@ -915,16 +1036,16 @@ void sanitize(std::string &input);
    */
   double CSMCamera::PhaseAngle() const {
     try {
-      csm::EcefCoord groundPt = isisToCsmGround(GetSurfacePoint());
-      csm::EcefVector sunEcefVec = m_model->getIlluminationDirection(groundPt);
-      // ISIS wants the position of the sun, not just the vector from the ground
-      // point to the sun. So, we approximate this by adding in the ground point.
-      // ISIS wants this in Km so convert
-      std::vector<double> sunVec = {
-          (groundPt.x - sunEcefVec.x) / 1000.0,
-          (groundPt.y - sunEcefVec.y) / 1000.0,
-          (groundPt.z - sunEcefVec.z) / 1000.0};
-      return target()->shape()->phaseAngle(sensorPositionBodyFixed(), sunVec);
+      SurfacePoint surfPt = GetSurfacePoint();
+      // Get vector from center of body to surface point
+      SensorUtilities::Vec pB(surfPt.GetX().kilometers(),
+                              surfPt.GetY().kilometers(),
+                              surfPt.GetZ().kilometers());
+
+      // Get vector from surface point to observer and normalize it
+      SensorUtilities::Vec sunLookVec;
+      sunLookVec = SensorUtilities::unitVector(pB - m_uB);
+      return RAD2DEG * SensorUtilities::sepAngle(m_lookB, sunLookVec);
     }
     catch (csm::Error &e) {
       return Isis::Null;
@@ -939,7 +1060,16 @@ void sanitize(std::string &input);
    */
   double CSMCamera::EmissionAngle() const {
     try {
-      return target()->shape()->emissionAngle(sensorPositionBodyFixed());
+      if (!target()->shape()->hasNormal()) target()->shape()->calculateDefaultNormal();
+      // Normal is pointing away from the surface intersection and 
+      // look vector is pointing toward the surface intersection 
+      // so negate one of them
+      std::vector<double> normalVec = target()->shape()->normal();
+      double normal[3];
+      normal[0] = -normalVec[0];
+      normal[1] = -normalVec[1];
+      normal[2] = -normalVec[2];
+      return RAD2DEG * SensorUtilities::sepAngle(normal, m_lookB);
     }
     catch (csm::Error &e) {
       return Isis::Null;
@@ -954,16 +1084,27 @@ void sanitize(std::string &input);
    */
   double CSMCamera::IncidenceAngle() const {
     try {
-      csm::EcefCoord groundPt = isisToCsmGround(GetSurfacePoint());
-      csm::EcefVector sunEcefVec = m_model->getIlluminationDirection(groundPt);
-      // ISIS wants the position of the sun, not just the vector from the ground
-      // point to the sun. So, we approximate this by adding in the ground point.
-      // ISIS wants this in Km so convert
-      std::vector<double> sunVec = {
-          (groundPt.x - sunEcefVec.x) / 1000.0,
-          (groundPt.y - sunEcefVec.y) / 1000.0,
-          (groundPt.z - sunEcefVec.z) / 1000.0};
-      return target()->shape()->incidenceAngle(sunVec);
+      if (!target()->shape()->hasNormal()) target()->shape()->calculateDefaultNormal();
+      // Normal is pointing away from the surface intersection and 
+      // illumination vector is pointing toward the surface intersection 
+      // so negate one of them
+      std::vector<double> normalVec = target()->shape()->normal();
+      double normal[3];
+      normal[0] = -normalVec[0];
+      normal[1] = -normalVec[1];
+      normal[2] = -normalVec[2];
+
+      SurfacePoint surfPt = GetSurfacePoint();
+      // Get vector from center of body to surface point
+      SensorUtilities::Vec pB(surfPt.GetX().kilometers(),
+                              surfPt.GetY().kilometers(),
+                              surfPt.GetZ().kilometers());
+
+      // Get vector from surface point to observer and normalize it
+      SensorUtilities::Vec sunLookVec;
+      sunLookVec = SensorUtilities::unitVector(pB - m_uB);
+
+      return RAD2DEG * SensorUtilities::sepAngle(normal, sunLookVec);
     }
     catch (csm::Error &e) {
       return Isis::Null;
@@ -1162,8 +1303,22 @@ void sanitize(std::string &input);
    * @param time The time to set
    */
   void CSMCamera::setTime(const iTime &time) {
-    QString msg = "Setting the image time is not supported for CSM camera models";
-    throw IException(IException::Programmer, msg, _FILEINFO_);
+    if (m_bodyRotation != nullptr) {
+      m_bodyRotation->SetEphemerisTime(time.Et());
+    }
+    if (m_instrumentRotation != nullptr) {
+      m_instrumentRotation->SetEphemerisTime(time.Et());
+    }
+    if (m_sunPosition != nullptr) {
+      m_sunPosition->SetEphemerisTime(time.Et());
+    }
+
+    if (m_bodyRotation != nullptr && m_sunPosition != nullptr) {
+      std::vector<double> uB = m_bodyRotation->ReferenceVector(m_sunPosition->Coordinate());
+      m_uB[0] = uB[0];
+      m_uB[1] = uB[1];
+      m_uB[2] = uB[2];
+    }
   }
 
 
@@ -1178,8 +1333,43 @@ void sanitize(std::string &input);
    * @param lon Sub-solar longitude
    */
   void CSMCamera::subSolarPoint(double &lat, double &lon) {
-    QString msg = "Sub solar point is not supported for CSM camera models";
-    throw IException(IException::Programmer, msg, _FILEINFO_);
+   NaifStatus::CheckErrors();
+
+    if (m_et == NULL) {
+      QString msg = "Unable to retrieve subsolar point."
+                    " Spice::SetTime must be called first.";
+      throw IException(IException::Programmer, msg, _FILEINFO_);
+    }
+    // Get vector from center of body to surface point
+    SurfacePoint surfPt = GetSurfacePoint();
+    SensorUtilities::Vec pB(surfPt.GetX().kilometers(),
+                            surfPt.GetY().kilometers(),
+                            surfPt.GetZ().kilometers());
+
+    // Get vector from surface point to observer and normalize it
+    std::vector<double> sunLookVec;
+    sunLookVec = SensorUtilities::unitVector(m_uB - pB);
+
+    std::vector<Distance> radii = target()->radii();
+
+    SpiceDouble a = radii[0].kilometers();
+    SpiceDouble b = radii[1].kilometers();
+    SpiceDouble c = radii[2].kilometers();
+
+    SpiceDouble originB[3];
+    originB[0] = originB[1] = originB[2] = 0.0;
+
+    SpiceBoolean found;
+    SpiceDouble subB[3];
+    surfpt_c(originB, &sunLookVec.data()[0], a, b, c, subB, &found);
+
+    SpiceDouble mylon, mylat;
+    reclat_c(subB, &a, &mylon, &mylat);
+
+    lat = mylat * 180.0 / PI;
+    lon = mylon * 180.0 / PI;
+    if (lon < 0.0) lon += 360.0;
+    NaifStatus::CheckErrors();
   }
 
 
@@ -1193,20 +1383,6 @@ void sanitize(std::string &input);
   QList<QPointF> CSMCamera::PixelIfovOffsets() {
     QString msg = "Pixel Field of View is not supported for CSM camera models";
     throw IException(IException::User, msg, _FILEINFO_);
-  }
-
-
-  /**
-   * Get the body fixed position of the sun in kilometers.
-   *
-   * This is not supported for CSM sensors because we cannot get the position
-   * of the sun, only the illumination direction.
-   *
-   * @param[out] p The position of the sun
-   */
-  void CSMCamera::sunPosition(double p[3]) const {
-    QString msg = "Sun position is not supported for CSM camera models";
-    throw IException(IException::Programmer, msg, _FILEINFO_);
   }
 
 
@@ -1276,22 +1452,43 @@ void sanitize(std::string &input);
    *
    * @param et Ephemeris time
    */
-  void CSMCamera::computeSolarLongitude(iTime et) {
-    QString msg = "Solar longitude is not supported for CSM camera models";
-    throw IException(IException::Programmer, msg, _FILEINFO_);
-  }
+  Longitude CSMCamera::solarLongitude() {
+    if (m_sunPosition == nullptr && m_bodyRotation == nullptr) {
+      return Longitude();
+    }
+    std::vector<double> sunPos = m_sunPosition->Coordinate();
+    std::vector<double> sunVel = m_sunPosition->Velocity();
 
+    std::vector<double> bodyRotMat = m_bodyRotation->Matrix();
 
-  /**
-   * Computes the distance to the sun from the currently set ground point
-   *
-   * This is not supported for CSM models because we cannot get the sun position.
-   *
-   * @returns @b double The distance to the sun
-   */
-  double CSMCamera::SolarDistance() const {
-    QString msg = "Solar distance is not supported for CSM camera models";
-    throw IException(IException::Programmer, msg, _FILEINFO_);
+    SensorUtilities::Vec sunAv = SensorUtilities::unitVector(SensorUtilities::crossProduct(sunPos.data(), sunVel.data()));
+    double npole[3];
+    for (int i = 0; i < 3; i++) {
+      npole[i] = bodyRotMat[6+i];
+    }
+
+    SensorUtilities::Vec z = sunAv;
+    SensorUtilities::Vec x = SensorUtilities::unitVector(SensorUtilities::crossProduct(npole, z));
+    SensorUtilities::Vec y = SensorUtilities::unitVector(SensorUtilities::crossProduct(z, x));
+
+    SensorUtilities::Matrix trans;
+    trans.a.x = x.x;
+    trans.b.x = y.x;
+    trans.c.x = z.x;
+
+    trans.a.y = x.y;
+    trans.b.y = y.y;
+    trans.c.y = z.y;
+
+    trans.a.z = x.z;
+    trans.b.z = y.z;
+    trans.c.z = z.z;
+
+    SensorUtilities::Vec pos = SensorUtilities::matrixVecProduct(trans, sunPos.data());
+    SensorUtilities::GroundPt3D spherical = SensorUtilities::rectToSpherical(pos);
+
+    *m_solarLongitude = Longitude(spherical.lon, Angle::Radians).force360Domain();
+    return *m_solarLongitude;
   }
 
 
@@ -1301,10 +1498,8 @@ void sanitize(std::string &input);
    * @returns @b double The Right Ascension
    */
   double CSMCamera::RightAscension() {
-    double precision;
-    csm::EcefLocus locus = m_model->imageToRemoteImagingLocus(csm::ImageCoord(p_childLine, p_childSample), 0.00001, &precision);
-    csm::EcefVector v = locus.direction;
-    SensorUtilities::GroundPt3D sphere_v = SensorUtilities::rectToSpherical({v.x, v.y, v.z});
+    std::vector lookVec = lookDirectionJ2000();
+    SensorUtilities::GroundPt3D sphere_v = SensorUtilities::rectToSpherical(lookVec.data());
     double lon = sphere_v.lon;
     if (lon < 0) {
       lon += 2 * PI;
@@ -1319,10 +1514,8 @@ void sanitize(std::string &input);
    * @returns @b double The Declination
    */
   double CSMCamera::Declination() {
-    double precision;
-    csm::EcefLocus locus = m_model->imageToRemoteImagingLocus(csm::ImageCoord(p_childLine, p_childSample), 0.00001, &precision);
-    csm::EcefVector v = locus.direction;
-    SensorUtilities::GroundPt3D sphere_v = SensorUtilities::rectToSpherical({v.x, v.y, v.z});
+    std::vector lookVec = lookDirectionJ2000();
+    SensorUtilities::GroundPt3D sphere_v = SensorUtilities::rectToSpherical(lookVec.data());
     return sphere_v.lat * RAD2DEG;
   }
 

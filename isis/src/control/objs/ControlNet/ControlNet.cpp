@@ -1634,7 +1634,7 @@ namespace Isis {
       try {
         Isis::Camera *cam = nullptr;
         if (i < isdFiles.size() && !isdFiles[i].isEmpty())
-          cam = CameraFactory::CreateFromIsd(isdFiles[i], cube);
+          cam = CameraFactory::CreateCsmCamera(isdFiles[i], cube);
         else
           cam = CameraFactory::Create(cube);
         p_cameraMap[serialNumber] = cam;

@@ -67,9 +67,7 @@ namespace Isis {
       throw IException(IException::User, message, _FILEINFO_);
     }
 
-    else if (ui.WasEntered("ISD")) {
-      QString isdFilePath = ui.GetFileName("ISD");
-
+    else {
       if (ui.WasEntered("PLUGINNAME")) {
         pluginName = ui.GetString("PLUGINNAME");
       }
@@ -78,92 +76,25 @@ namespace Isis {
         modelName = ui.GetString("MODELNAME");
       }
 
-      QStringList modelSpec = CameraFactory::getModelSpecFromIsd(isdFilePath, pluginName, modelName);
-      model = CameraFactory::constructModelFromIsd(isdFilePath, modelSpec[0], modelSpec[1], modelSpec[2]);
+      QStringList modelSpec;
+      if (ui.WasEntered("ISD")) {
+        QString isdFilePath = ui.GetFileName("ISD");
+
+        modelSpec = CameraFactory::getModelSpecFromIsd(isdFilePath, pluginName, modelName);
+        model = CameraFactory::constructModelFromIsd(isdFilePath, modelSpec[0], modelSpec[1], modelSpec[2]);
+
+      } // end of ISD if statement
+
+      else if (ui.WasEntered("STATE")) {
+        QString stateFilePath = ui.GetFileName("STATE");
+
+        modelSpec = CameraFactory::getModelSpecFromState(stateFilePath, pluginName, modelName);
+        model = CameraFactory::constructModelFromState(stateFilePath, modelSpec[0]);
+      } // end of State else statement
+
       pluginName = modelSpec[0];
       modelName = modelSpec[1];
-    } // end of ISD if statement
-
-    else if (ui.WasEntered("STATE")) {
-      FileName stateFilePath = ui.GetFileName("STATE");
-
-      std::ifstream file(stateFilePath.expanded().toStdString());
-      std::stringstream buffer;
-      buffer << file.rdbuf();
-      QString stateString = QString::fromStdString(buffer.str());
-
-      QList<QStringList> possibleModels;
-      for (const csm::Plugin * plugin : csm::Plugin::getList()) {
-        QString currentPluginName = QString::fromStdString(plugin->getPluginName());
-        if (ui.WasEntered("PLUGINNAME") && currentPluginName != ui.GetString("PLUGINNAME")) {
-          continue;
-        }
-
-        for (size_t modelIndex = 0; modelIndex < plugin->getNumModels(); modelIndex++) {
-          QString currentModelName = QString::fromStdString(plugin->getModelName(modelIndex));
-          if (ui.WasEntered("MODELNAME") && currentModelName != ui.GetString("MODELNAME")) {
-            continue;
-          }
-
-          if (plugin->canModelBeConstructedFromState(currentModelName.toStdString(), stateString.toStdString())){
-            QStringList modelSpec = {
-                currentPluginName,
-                currentModelName};
-            possibleModels.append(modelSpec);
-            continue;
-          }
-        }
-      }
-
-      if (possibleModels.size() > 1) {
-        QString message = "Multiple models can be created from the State [" + stateFilePath.toString() + "]. "
-                          "Re-run with the PLUGINNAME and MODELNAME parameters. "
-                          "Possible plugin & model names:\n";
-        for (const QStringList &modelSpec : possibleModels) {
-          message += "Plugin [" + modelSpec[0] + "], Model [" + modelSpec[1] + "]\n";
-        }
-        throw IException(IException::User, message, _FILEINFO_);
-      }
-
-      if (possibleModels.empty()) {
-        QString message = "No loaded model could be created from the State [" + stateFilePath.toString() + "]."
-                          "Loaded plugin & model names:\n";
-        for (const csm::Plugin * plugin : csm::Plugin::getList()) {
-          QString currentPluginName = QString::fromStdString(plugin->getPluginName());
-          for (size_t modelIndex = 0; modelIndex < plugin->getNumModels(); modelIndex++) {
-            QString modelName = QString::fromStdString(plugin->getModelName(modelIndex));
-            message += "Plugin [" + currentPluginName + "], Model [" + modelName + "]\n";
-          }
-        }
-        throw IException(IException::User, message, _FILEINFO_);
-      }
-
-      // If we are here, then we have exactly 1 model
-      QStringList modelSpec = possibleModels.front();
-
-      if (modelSpec.size() != 2) {
-        QString message = "Model specification [" + modelSpec.join(" ") + "] has [" + QString::number(modelSpec.size()) + "] elements "
-          "when it should have 2 elements.";
-        throw IException(IException::Programmer, message, _FILEINFO_);
-      }
-      pluginName = modelSpec[0];
-      modelName = modelSpec[1];
-
-      const csm::Plugin *plugin = csm::Plugin::findPlugin(pluginName.toStdString());
-      if (plugin == NULL) {
-        QString message = "Cannot find requested Plugin: [" + pluginName + "].";
-        throw IException(IException::User, message, _FILEINFO_);
-      }
-
-      // TODO: Add warning argument and use message from csm::Warning for Isis::IException error.
-      if (plugin->canModelBeConstructedFromState(modelName.toStdString(), stateString.toStdString())){
-        model = plugin->constructModelFromState(stateString.toStdString());
-      }
-      else {
-        QString message = "Could not construct sensor model using STATE string and MODELNAME: [" + modelName + "]";
-        throw IException(IException::Programmer, message, _FILEINFO_);
-      }
-    } // end of State else statement
+    }
 
     string modelState = model->getModelState();
 

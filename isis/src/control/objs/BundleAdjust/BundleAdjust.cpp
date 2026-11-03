@@ -445,10 +445,8 @@ namespace Isis {
 
       if (!m_isdFiles[i].isEmpty()) {
         // Prepare cube label for CSM (strips SPICE, injects CsmInfo)
-        csm::Model *model =
-          CameraFactory::constructModelFromIsdOrState(m_isdFiles[i]);
-        CameraFactory::updateLabelForCsm(cube, model);
-        if (model) delete model;
+        Camera *csmCamera = CameraFactory::CreateCsmCamera(m_isdFiles[i], cube);
+        if (csmCamera) delete csmCamera;
       }
 
       // Derive serial number and metadata from (possibly modified) label.

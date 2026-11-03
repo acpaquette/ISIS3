@@ -1929,7 +1929,7 @@ void renderMapprojectedImage(Camera *cam,
 // Load a CSM camera model from an ISD file and set it in the cube,
 // so that cube->camera() returns a CSMCamera.
 void loadCsmCamera(const QString &isdFile, Cube *cube) {
-  Camera *cam = CameraFactory::CreateFromIsd(isdFile, *cube);
+  Camera *cam = CameraFactory::CreateCsmCamera(isdFile, *cube);
   cube->setCamera(cam);
 }
 
