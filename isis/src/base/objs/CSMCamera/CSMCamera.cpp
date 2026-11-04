@@ -145,7 +145,10 @@ void sanitize(std::string &input);
     m_sunPosition = nullptr;
     m_bodyRotation = nullptr;
   
-    json stateJson = stateAsJson(stateString.toStdString());
+    json stateJson = {};
+    if (pluginName == "UsgsAstroPluginCSM") {
+      stateJson = stateAsJson(stateString.toStdString());
+    }
 
     std::vector<double> quaternions ;
     std::vector<double> angularVelocities;

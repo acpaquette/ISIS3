@@ -233,6 +233,8 @@ namespace Isis {
    * @return Camera* The CSMCamera object created.
    */
   Camera *CameraFactory::CreateCsmCamera(const QString &modelFile, Cube &cube) {
+    initPlugin();
+
     // This raw pointer is not managed. Pre-existing issue.
     csm::Model *model = nullptr;
     QString pluginName = "";
@@ -530,10 +532,10 @@ namespace Isis {
         continue;
       }
 
-      if (plugin->canModelBeConstructedFromState(modelName, stateFileContent);) {
+      if (plugin->canModelBeConstructedFromState(modelName.toStdString(), stateFileContent)) {
         QStringList modelSpec = {
             currentPluginName,
-            currentModelName};
+            modelName};
         possibleModels.append(modelSpec);
         continue; // If the file ISD works, don't check the other ISD formats
       }
@@ -550,7 +552,7 @@ namespace Isis {
     }
 
     if (possibleModels.empty()) {
-      QString message = "No loaded model could be created from the state [" + stateFilePath + "]."
+      QString message = "No loaded model could be created from the State [" + stateFilePath + "]."
                         "Loaded plugin & model names:\n";
       for (const csm::Plugin * plugin : csm::Plugin::getList()) {
         QString currentPluginName = QString::fromStdString(plugin->getPluginName());
