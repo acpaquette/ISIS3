@@ -28,6 +28,7 @@ find files of those names at the top level of this repository. **/
 #include "Spice.h"
 #include "Target.h"
 #include "Preference.h"
+#include "MathUtils.h"
 
 using namespace std;
 
@@ -177,19 +178,22 @@ namespace Isis {
     }
 
     // Get the coordinates of the current surface point
-    SpiceDouble pB[3];
+    double pB[3];
     surfaceIntersection()->ToNaifArray(pB);
 
     // Get the body radii and compute the true normal of the ellipsoid
-    std::vector<double> norm(3);
+    double norm[3];
     // need a case for target == NULL
     std::vector<Distance> radii = targetRadii();
-    NaifStatus::CheckErrors();
-    surfnm_c(radii[0].kilometers(), radii[1].kilometers(), radii[2].kilometers(),
-             pB, &norm[0]);
-    NaifStatus::CheckErrors();
+    for (size_t i = 0; i < radii.size(); i++) {
+      double r = radii[i].kilometers();
+      double rr = r * r;
+      norm[i] = pB[i]/rr;
+    }
 
-    setNormal(norm);
+    std::vector<double> unitNormal = SensorUtilities::unitVector(norm);
+    
+    setNormal(unitNormal);
     setHasNormal(true);
   }
 
@@ -281,6 +285,70 @@ namespace Isis {
     return acos(angle) * RAD2DEG;
   }
 
+  bool ShapeModel::ellipsoidIntersect(const std::vector<double> observerBodyFixedPosition,
+                                      const std::vector<double> &observerLookVectorToTarget,
+                                      const std::vector<double> &radii,
+                                      std::vector<double> &intersection) {
+    // check if observer look vector intersects the target
+    double scaledObserverPosition[3];
+    scaledObserverPosition[0] = observerBodyFixedPosition[0] / radii[0];
+    scaledObserverPosition[1] = observerBodyFixedPosition[1] / radii[1];
+    scaledObserverPosition[2] = observerBodyFixedPosition[2] / radii[2];
+
+    double scaledLookDirection[3];
+    scaledLookDirection[0] = observerLookVectorToTarget[0] / radii[0];
+    scaledLookDirection[1] = observerLookVectorToTarget[1] / radii[1];
+    scaledLookDirection[2] = observerLookVectorToTarget[2] / radii[2];
+
+    double dxx = scaledLookDirection[0] * scaledLookDirection[0];
+    double dyy = scaledLookDirection[1] * scaledLookDirection[1];
+    double dzz = scaledLookDirection[2] * scaledLookDirection[2];
+
+    double odx = scaledObserverPosition[0] * scaledLookDirection[0];
+    double ody = scaledObserverPosition[1] * scaledLookDirection[1];
+    double odz = scaledObserverPosition[2] * scaledLookDirection[2];
+
+    double oxx = scaledObserverPosition[0] * scaledObserverPosition[0];
+    double oyy = scaledObserverPosition[1] * scaledObserverPosition[1];
+    double ozz = scaledObserverPosition[2] * scaledObserverPosition[2];
+
+    double aTerm = dxx + dyy + dzz;
+    double bTerm = 2*(odx + ody + odz);
+    double cTerm = oxx + oyy + ozz - 1;
+
+    double discrim = (bTerm * bTerm) - 4 * aTerm * cTerm;
+    double t = 0;
+    bool intersected = false;
+    if (discrim < 0) {
+      intersected = false;
+    }
+    else if (discrim == 0) {
+      intersected = true;
+      t = -bTerm/(2 * aTerm);
+    }
+    else if (discrim > 0) {
+      intersected = true;
+      double sqrtDiscrim = sqrt(discrim);
+      double t1 = (-bTerm - sqrtDiscrim)/(2 * aTerm);
+      double t2 = (-bTerm + sqrtDiscrim)/(2 * aTerm);
+      t = std::min(t1, t2);
+      if (t1 < 0 && t2 < 0) {
+        intersected = false;
+      }
+    }
+
+    if (intersected) {
+      intersection[0] = scaledObserverPosition[0] + t*scaledLookDirection[0];
+      intersection[1] = scaledObserverPosition[1] + t*scaledLookDirection[1];
+      intersection[2] = scaledObserverPosition[2] + t*scaledLookDirection[2];
+      intersection[0] *= radii[0];
+      intersection[1] *= radii[1];
+      intersection[2] *= radii[2];
+    }
+
+    return intersected;
+  }
+
 
   /**
    * Finds the intersection point on the ellipsoid model using the given
@@ -300,36 +368,20 @@ namespace Isis {
     // Clear out previous surface point and normal
     clearSurfacePoint();
 
-    SpiceDouble lookB[3];
-
-    // This memcpy does:
-    // lookB[0] = observerLookVectorToTarget[0];
-    // lookB[1] = observerLookVectorToTarget[1];
-    // lookB[2] = observerLookVectorToTarget[2];
-    memcpy(lookB,&observerLookVectorToTarget[0], 3*sizeof(double));
-
     // get target radii
     std::vector<Distance> radii = targetRadii();
-    SpiceDouble a = radii[0].kilometers();
-    SpiceDouble b = radii[1].kilometers();
-    SpiceDouble c = radii[2].kilometers();
+    double a = radii[0].kilometers();
+    double b = radii[1].kilometers();
+    double c = radii[2].kilometers();
+    std::vector<double> radiiD = {a, b, c};
+    vector<double> normalLookVec = SensorUtilities::unitVector(observerLookVectorToTarget.data());
 
-    // check if observer look vector intersects the target
-    SpiceDouble intersectionPoint[3];
-    SpiceBoolean intersected = false;
-
-    NaifStatus::CheckErrors();
-    surfpt_c((SpiceDouble *) &observerBodyFixedPosition[0], lookB, a, b, c,
-             intersectionPoint, &intersected);
-    NaifStatus::CheckErrors();
-
-    if (intersected) {
-      m_surfacePoint->FromNaifArray(intersectionPoint);
-      m_hasIntersection = true;
+    std::vector<double> intersection = {0, 0, 0};
+    bool intersect = ellipsoidIntersect(observerBodyFixedPosition, normalLookVec, radiiD, intersection);
+    if (intersect) {
+      m_surfacePoint->FromNaifArray(intersection.data());
     }
-    else {
-      m_hasIntersection = false;
-    }
+    setHasIntersection(intersect);
 
     m_hasEllipsoidIntersection = m_hasIntersection;
     return m_hasIntersection;

@@ -208,19 +208,17 @@ namespace Isis {
 
     // in each iteration, the current surface intersect point is saved for
     // comparison with the new, updated surface intersect point
-    SpiceDouble newIntersectPt[3];
+    std::vector<double> newIntersectPt = {0, 0, 0};
 
     // An estimate for the radius of points in the DEM. Ensure the radius is
     // strictly below the position, so that surfpt_c does not fail.
     double r = findDemValue();
     r = std::min(r, positionNormKm - 0.0001);
+    std::vector<double> radii = {r, r, r};
     
     // Try to intersect the target body ellipsoid at given radius as a first
     // approximation.
-    bool status;
-    surfpt_c((SpiceDouble *) &observerPos[0], &lookDirection[0], r, r, r, newIntersectPt,
-               (SpiceBoolean*) &status);
-
+    bool status = ellipsoidIntersect(observerPos, lookDirection, radii, newIntersectPt);
     if (!status) { 
         // If no luck, start at the observer, and will try points along the ray.
         for (size_t i = 0; i < 3; i++)
@@ -228,7 +226,7 @@ namespace Isis {
     }
     
     // Ensure the intersection point is set 
-    surfaceIntersection()->FromNaifArray(newIntersectPt);
+    surfaceIntersection()->FromNaifArray(newIntersectPt.data());
     setHasIntersection(true);
     
     // Find the current position along the ray, relative to the observer

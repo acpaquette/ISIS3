@@ -155,6 +155,11 @@ namespace Isis {
       virtual bool isVisibleFrom(const std::vector<double> observerPos,
                                  const std::vector<double> lookDirection);
 
+      static bool ellipsoidIntersect(const std::vector<double> observerPosRelativeToTarget,
+                                     const std::vector<double> &observerLookVectorToTarget,
+                                     const std::vector<double> &radii,
+                                     std::vector<double> &intersection);
+
     protected:
 
       // Set the surface normal of the current intersection point
